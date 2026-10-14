@@ -1,6 +1,6 @@
 import React from "react";
 
-import { NavLink, Link } from "react-router-dom";
+import { NavLink, Link, useNavigate } from "react-router-dom";
 
 import {
   LayoutDashboard,
@@ -55,6 +55,31 @@ const navigationItems = [
 ];
 
 const Sidebar = ({ mobileOpen, setMobileOpen }) => {
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/auth/logout`,
+        {
+          method: "POST",
+          credentials: "include",
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Logout failed");
+      }
+
+      closeMobile?.();
+      navigate("/login", { replace: true });
+    } catch (error) {
+      console.error("Logout error:", error);
+      alert("Unable to sign out. Please try again.");
+    }
+  };
   return (
     <>
       {/* Desktop Sidebar */}
@@ -178,15 +203,14 @@ const SidebarContent = ({ closeMobile }) => {
       <div className="space-y-2 px-4 pb-7">
         <div className="mb-5 h-px bg-[#c5c9dc]" />
 
-        <Link to="/">
-          <button
-            type="button"
-            className="flex h-[50px] w-full items-center gap-4 rounded-xl px-5 text-[15px] font-medium text-slate-700 transition hover:bg-white hover:text-red-600"
-          >
-            <LogOut size={23} />
-            Sign Out
-          </button>
-        </Link>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex h-[50px] w-full items-center gap-4 rounded-xl px-5 text-[15px] font-medium text-slate-700 transition hover:bg-white hover:text-red-600"
+        >
+          <LogOut size={23} />
+          Sign Out
+        </button>
       </div>
     </>
   );

@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import prisma from "../lib/prisma.js";
+import { authCookieOptions } from "../utils/cookieOptions.js";
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -30,8 +31,14 @@ export const register = async (req, res) => {
     }
 
     //check if the email is valid
-    if (!email.includes("@")) {
-      return res.status(400).json("invalid email");
+    if (
+      typeof email !== "string" ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid email address",
+      });
     }
 
     //check if the password is valid or its length is greater than 8 characters
@@ -47,9 +54,11 @@ export const register = async (req, res) => {
     }
 
     //check if the user already exists
+    const cleanEmail = email.trim().toLowerCase();
+
     const existsUser = await prisma.members.findUnique({
       where: {
-        email: email,
+        email: cleanEmail,
       },
     });
 
@@ -63,7 +72,7 @@ export const register = async (req, res) => {
     const user = await prisma.members.create({
       data: {
         name: cleanName,
-        email: email.trim().toLowerCase(),
+        email: cleanEmail.trim().toLowerCase(),
         password: hashedpassword,
       },
     });
@@ -82,19 +91,19 @@ export const register = async (req, res) => {
     );
 
     //add jwt to the cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: false,
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("token", token, authCookieOptions);
 
     return res.status(201).json({
       success: true,
       message: "Registration successful",
     });
   } catch (error) {
-    return res.status(500).json(error.message);
+    console.error("Registration error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Registration failed. Please try again.",
+    });
   }
 };
 
@@ -149,12 +158,7 @@ export const login = async (req, res) => {
     );
 
     // Store JWT in cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: false,
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("token", token, authCookieOptions);
 
     // Successful response
     return res.status(200).json({
@@ -452,13 +456,7 @@ export const googleSignup = async (req, res) => {
       { expiresIn: "1d" },
     );
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 24 * 60 * 60 * 1000,
-      path: "/",
-    });
+    res.cookie("token", token, authCookieOptions);
 
     return res.status(200).json({
       success: true,
@@ -482,9 +480,10 @@ export const googleSignup = async (req, res) => {
 
 export const logout = (req, res) => {
   res.clearCookie("token", {
-    httpOnly: true,
-    secure: false,
-    sameSite: "lax",
+    httpOnly: authCookieOptions.httpOnly,
+    secure: authCookieOptions.secure,
+    sameSite: authCookieOptions.sameSite,
+    path: authCookieOptions.path,
   });
 
   return res.status(200).json({

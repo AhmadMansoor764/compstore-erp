@@ -1,12 +1,13 @@
 import jwt from "jsonwebtoken";
 
-const middleware = (req, res, next) => {
+const authMiddleware = (req, res, next) => {
   try {
-    const token = req.cookies.token;
+    const token = req.cookies?.token;
 
     if (!token) {
       return res.status(401).json({
-        message: "Unauthorized",
+        success: false,
+        message: "Unauthorized. Please log in.",
       });
     }
 
@@ -14,14 +15,20 @@ const middleware = (req, res, next) => {
 
     req.user = decoded;
 
-    next();
+    return next();
   } catch (error) {
-    console.error(error);
+    if (
+      error.name !== "TokenExpiredError" &&
+      error.name !== "JsonWebTokenError"
+    ) {
+      console.error("Authentication middleware error:", error);
+    }
 
     return res.status(401).json({
-      message: "Unauthorized",
+      success: false,
+      message: "Invalid or expired authentication token.",
     });
   }
 };
 
-export default middleware;
+export default authMiddleware;
