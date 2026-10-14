@@ -12,6 +12,12 @@ import expensesRoutes from "./src/routes/expensesRoutes.js";
 import salesRoutes from "./src/routes/salesRoutes.js";
 const app = express();
 
+app.get("/", (req, res) => {
+  res.status(200).json({
+    message: "CompStore ERP API is running",
+  });
+});
+
 app.use(
   cors({
     origin: "http://localhost:5173",
