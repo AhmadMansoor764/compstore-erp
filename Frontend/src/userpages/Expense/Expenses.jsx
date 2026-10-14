@@ -61,13 +61,16 @@ const Expenses = () => {
       setLoading(true);
       setLoadError("");
 
-      const response = await fetch("http://localhost:3000/api/expenses", {
-        method: "GET",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/expenses`,
+        {
+          method: "GET",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
         },
-      });
+      );
 
       const data = await response.json().catch(() => ({}));
 
@@ -186,7 +189,7 @@ const Expenses = () => {
       setDeleting(true);
 
       const response = await fetch(
-        `http://localhost:3000/api/expenses/${expenseToDelete.id}`,
+        `${import.meta.env.VITE_API_URL}/api/expenses/${expenseToDelete.id}`,
         {
           method: "DELETE",
           credentials: "include",

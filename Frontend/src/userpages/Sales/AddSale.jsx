@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, Trash2, ShoppingCart } from "lucide-react";
 import { toast } from "react-hot-toast";
 
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL = `${import.meta.env.VITE_API_URL}`;
 
 const AddSale = () => {
   const navigate = useNavigate();

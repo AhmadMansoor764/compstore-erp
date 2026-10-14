@@ -15,7 +15,7 @@ import SalesCategoryCard from "./dashboard/SalesCategoryCard";
 import QuickActions from "./dashboard/QuickActions";
 import LowStockAlerts from "./dashboard/LowStockAlerts";
 
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL = `${import.meta.env.VITE_API_URL}`;
 
 const itemVariants = {
   hidden: { opacity: 0, y: 15 },

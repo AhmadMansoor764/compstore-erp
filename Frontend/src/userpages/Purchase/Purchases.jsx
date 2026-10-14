@@ -87,7 +87,7 @@ const Purchases = () => {
   const [paymentFilter, setPaymentFilter] = useState("All");
   const [selectedPurchase, setSelectedPurchase] = useState(null);
 
-  const API_URL = "http://localhost:3000/api";
+  const API_URL = `${import.meta.env.VITE_API_URL}/api`;
 
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);

@@ -39,18 +39,6 @@ const Login = () => {
 
       console.log("Login data:", data);
 
-      // ---------------------------------------------
-      // Later connect this to your backend:
-      //
-      // const response = await axios.post(
-      //   "http://localhost:8000/api/auth/login",
-      //   data,
-      //   { withCredentials: true }
-      // );
-      //
-      // navigate("/dashboard");
-      // ---------------------------------------------
-
       // Temporary demonstration
       await new Promise((resolve) => setTimeout(resolve, 1000));
 

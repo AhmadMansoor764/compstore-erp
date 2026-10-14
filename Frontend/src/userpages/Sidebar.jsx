@@ -1,5 +1,4 @@
 import React from "react";
-
 import { NavLink, Link, useNavigate } from "react-router-dom";
 
 import {
@@ -17,44 +16,70 @@ import {
 } from "lucide-react";
 
 const navigationItems = [
-  {
-    label: "Dashboard",
-    path: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Stock",
-    path: "/dashboard/stock",
-    icon: Package,
-  },
-  {
-    label: "Sales",
-    path: "/dashboard/sales",
-    icon: ShoppingCart,
-  },
-  {
-    label: "Purchases",
-    path: "/dashboard/purchases",
-    icon: ClipboardList,
-  },
-  {
-    label: "Expenses",
-    path: "/dashboard/expenses",
-    icon: ReceiptText,
-  },
-  {
-    label: "Reports",
-    path: "/dashboard/reports",
-    icon: BarChart3,
-  },
-  {
-    label: "Profile",
-    path: "/dashboard/profile",
-    icon: UserRound,
-  },
+  { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+  { label: "Stock", path: "/dashboard/stock", icon: Package },
+  { label: "Sales", path: "/dashboard/sales", icon: ShoppingCart },
+  { label: "Purchases", path: "/dashboard/purchases", icon: ClipboardList },
+  { label: "Expenses", path: "/dashboard/expenses", icon: ReceiptText },
+  { label: "Reports", path: "/dashboard/reports", icon: BarChart3 },
+  { label: "Profile", path: "/dashboard/profile", icon: UserRound },
 ];
 
 const Sidebar = ({ mobileOpen, setMobileOpen }) => {
+  const closeMobile = () => setMobileOpen(false);
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="hidden min-h-screen w-[285px] shrink-0 flex-col border-r border-[#c5c9dc] bg-[#f3f4ff] lg:flex">
+        <SidebarContent />
+      </aside>
+
+      {/* Mobile Overlay */}
+      {mobileOpen && (
+        <div
+          onClick={closeMobile}
+          className="fixed inset-0 z-40 bg-slate-950/50 lg:hidden"
+        />
+      )}
+
+      {/* Mobile Sidebar */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-[285px] flex-col bg-[#f3f4ff] shadow-2xl transition-transform duration-300 lg:hidden ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between px-5 py-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e1e4f2]">
+              <Store size={24} className="text-[#2563eb]" />
+            </div>
+
+            <div>
+              <h1 className="text-lg font-bold text-[#1746b8]">Main Branch</h1>
+              <p className="text-xs font-medium text-slate-700">
+                Admin Terminal
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={closeMobile}
+            aria-label="Close sidebar"
+            className="rounded-lg p-2 text-slate-700 hover:bg-white"
+          >
+            <X size={22} />
+          </button>
+        </div>
+
+        <SidebarContent closeMobile={closeMobile} />
+      </aside>
+    </>
+  );
+};
+
+const SidebarContent = ({ closeMobile }) => {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -80,57 +105,7 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
       alert("Unable to sign out. Please try again.");
     }
   };
-  return (
-    <>
-      {/* Desktop Sidebar */}
-      <aside className="hidden min-h-screen w-[285px] shrink-0 flex-col border-r border-[#c5c9dc] bg-[#f3f4ff] lg:flex">
-        <SidebarContent />
-      </aside>
 
-      {/* Mobile Overlay */}
-      {mobileOpen && (
-        <div
-          onClick={() => setMobileOpen(false)}
-          className="fixed inset-0 z-40 bg-slate-950/50 lg:hidden"
-        />
-      )}
-
-      {/* Mobile Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[285px] flex-col bg-[#f3f4ff] shadow-2xl transition-transform duration-300 lg:hidden ${
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="flex items-center justify-between px-5 py-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e1e4f2]">
-              <Store size={24} className="text-[#2563eb]" />
-            </div>
-
-            <div>
-              <h1 className="text-lg font-bold text-[#1746b8]">Main Branch</h1>
-
-              <p className="text-xs font-medium text-slate-700">
-                Admin Terminal
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="rounded-lg p-2 text-slate-700 hover:bg-white"
-          >
-            <X size={22} />
-          </button>
-        </div>
-
-        <SidebarContent closeMobile={() => setMobileOpen(false)} />
-      </aside>
-    </>
-  );
-};
-
-const SidebarContent = ({ closeMobile }) => {
   return (
     <>
       {/* Branch Header */}
@@ -141,7 +116,6 @@ const SidebarContent = ({ closeMobile }) => {
 
         <div>
           <h1 className="text-xl font-bold text-[#1746b8]">Main Branch</h1>
-
           <p className="text-sm font-medium tracking-wide text-slate-700">
             Admin Terminal
           </p>
@@ -190,7 +164,6 @@ const SidebarContent = ({ closeMobile }) => {
                         : "text-slate-700 group-hover:text-[#2563eb]"
                     }
                   />
-
                   <span>{item.label}</span>
                 </>
               )}

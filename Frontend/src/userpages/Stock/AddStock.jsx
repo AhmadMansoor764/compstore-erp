@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -10,10 +10,23 @@ import {
   Search,
   Plus,
   ChevronDown,
+  Check,
+  Package,
+  Tag,
+  Truck,
+  Hash,
+  Layers3,
+  DollarSign,
+  ShoppingBag,
+  Info,
+  LoaderCircle,
+  FileText,
+  CircleAlert,
+  Sparkles,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-const API_URL = "http://localhost:3000/api";
+const API_URL = `${import.meta.env.VITE_API_URL}/api`;
 
 const initialForm = {
   name: "",
@@ -25,13 +38,29 @@ const initialForm = {
   description: "",
 };
 
-const inputClass =
-  "h-12 w-full rounded-xl border border-[#c8cce0] bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
+const money = (value) =>
+  Number(value || 0).toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+
+const dropdownVariants = {
+  hidden: { opacity: 0, y: -5, scale: 0.99 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.16 },
+  },
+  exit: { opacity: 0, y: -4, scale: 0.99, transition: { duration: 0.1 } },
+};
 
 const AddStock = () => {
   const navigate = useNavigate();
+
   const categoryRef = useRef(null);
   const supplierRef = useRef(null);
+  const productRef = useRef(null);
 
   const [formData, setFormData] = useState(initialForm);
   const [categories, setCategories] = useState([]);
@@ -127,12 +156,26 @@ const AddStock = () => {
       if (supplierRef.current && !supplierRef.current.contains(event.target)) {
         setSupplierOpen(false);
       }
+
+      if (productRef.current && !productRef.current.contains(event.target)) {
+        setProductSearchOpen(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setCategoryOpen(false);
+        setSupplierOpen(false);
+        setProductSearchOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
 
     return () => {
       document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
     };
   }, []);
 
@@ -145,7 +188,9 @@ const AddStock = () => {
     return (
       query &&
       remainingQuantity > 0 &&
-      (item.product_name || "").toLowerCase().includes(query)
+      String(item.product_name || "")
+        .toLowerCase()
+        .includes(query)
     );
   });
 
@@ -196,21 +241,28 @@ const AddStock = () => {
   };
 
   const filteredCategories = categories.filter((category) =>
-    category.name.toLowerCase().includes(categorySearch.trim().toLowerCase()),
+    String(category.name || "")
+      .toLowerCase()
+      .includes(categorySearch.trim().toLowerCase()),
   );
 
   const exactCategoryExists = categories.some(
     (category) =>
-      category.name.trim().toLowerCase() ===
-      categorySearch.trim().toLowerCase(),
+      String(category.name || "")
+        .trim()
+        .toLowerCase() === categorySearch.trim().toLowerCase(),
   );
 
   const filteredSuppliers = suppliers.filter((supplier) => {
     const query = supplierSearch.trim().toLowerCase();
 
     return (
-      supplier.name.toLowerCase().includes(query) ||
-      (supplier.company_name || "").toLowerCase().includes(query)
+      String(supplier.name || "")
+        .toLowerCase()
+        .includes(query) ||
+      String(supplier.company_name || "")
+        .toLowerCase()
+        .includes(query)
     );
   });
 
@@ -231,9 +283,11 @@ const AddStock = () => {
 
     if (!name || isCreatingCategory) return;
 
-    // Reuse a category if it already exists, ignoring letter case.
     const existingCategory = categories.find(
-      (category) => category.name.trim().toLowerCase() === name.toLowerCase(),
+      (category) =>
+        String(category.name || "")
+          .trim()
+          .toLowerCase() === name.toLowerCase(),
     );
 
     if (existingCategory) {
@@ -404,7 +458,6 @@ const AddStock = () => {
       }
 
       toast.success(data.message || "Stock added successfully.");
-
       navigate("/dashboard/stock");
     } catch (error) {
       toast.error(error.message || "Failed to save stock.");
@@ -413,150 +466,347 @@ const AddStock = () => {
     }
   };
 
+  const estimatedProfit =
+    formData.purchasePrice !== "" && formData.sellingPrice !== ""
+      ? Number(formData.sellingPrice) - Number(formData.purchasePrice)
+      : null;
+
+  const estimatedMargin =
+    estimatedProfit !== null && Number(formData.sellingPrice) > 0
+      ? (estimatedProfit / Number(formData.sellingPrice)) * 100
+      : null;
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 18 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mx-auto w-full max-w-5xl space-y-6"
+      transition={{ duration: 0.28 }}
+      className="as-page mx-auto w-full max-w-6xl"
     >
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <Link
-            to="/dashboard/stock"
-            className="mb-3 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 transition hover:text-blue-700"
-          >
-            <ArrowLeft size={17} />
-            Back to Stock
-          </Link>
+      <style>{`
+        .as-page {
+          --as-ink: #182338;
+          --as-muted: #718096;
+          --as-line: #e5eaf2;
+          --as-blue: #4f46e5;
+          --as-blue-dark: #3730a3;
+          --as-surface: #ffffff;
+          color: var(--as-ink);
+          font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+        .as-page * { box-sizing: border-box; }
+        .as-page .as-eyebrow {
+          display: inline-flex; align-items: center; gap: 7px;
+          color: #4f46e5; font-size: 11px; font-weight: 800;
+          letter-spacing: .13em; text-transform: uppercase;
+        }
+        .as-page .as-back {
+          display: inline-flex; align-items: center; gap: 8px;
+          color: #64748b; font-size: 13px; font-weight: 700;
+          transition: color .2s, transform .2s;
+        }
+        .as-page .as-back:hover { color: #4338ca; transform: translateX(-2px); }
+        .as-page .as-primary {
+          display: inline-flex; min-height: 46px; align-items: center;
+          justify-content: center; gap: 9px; border: 1px solid #4f46e5;
+          border-radius: 13px; padding: 0 19px; background: #4f46e5;
+          color: #fff; font-size: 13px; font-weight: 750;
+          box-shadow: 0 7px 16px rgba(79,70,229,.18);
+          transition: background .2s, transform .2s, box-shadow .2s;
+        }
+        .as-page .as-primary:hover:not(:disabled) {
+          background: #4338ca; box-shadow: 0 10px 20px rgba(79,70,229,.24);
+          transform: translateY(-1px);
+        }
+        .as-page .as-primary:disabled { opacity: .58; cursor: not-allowed; box-shadow: none; }
+        .as-page .as-secondary {
+          display: inline-flex; min-height: 46px; align-items: center;
+          justify-content: center; gap: 8px; border: 1px solid #e0e6ef;
+          border-radius: 13px; padding: 0 17px; background: #fff;
+          color: #475569; font-size: 13px; font-weight: 750;
+          transition: background .2s, border-color .2s;
+        }
+        .as-page .as-secondary:hover { background: #f8fafc; border-color: #cbd5e1; }
+        .as-page .as-panel {
+          overflow: visible; border: 1px solid var(--as-line);
+          border-radius: 22px; background: var(--as-surface);
+          box-shadow: 0 8px 30px rgba(15,23,42,.035);
+        }
+        .as-page .as-panel-head {
+          display: flex; align-items: center; gap: 13px;
+          padding: 22px 25px; border-bottom: 1px solid #edf0f5;
+          background: linear-gradient(110deg,#fbfcff,#f8faff);
+          border-radius: 22px 22px 0 0;
+        }
+        .as-page .as-icon-box {
+          display: flex; width: 43px; height: 43px; flex: 0 0 auto;
+          align-items: center; justify-content: center; border-radius: 14px;
+          color: #4f46e5; background: #eef2ff;
+          border: 1px solid #e0e7ff;
+        }
+        .as-page .as-field-label {
+          display: flex; align-items: center; gap: 5px; margin-bottom: 9px;
+          color: #344256; font-size: 12px; font-weight: 750;
+        }
+        .as-page .as-required { color: #ef4444; }
+        .as-page .as-optional {
+          margin-left: 4px; color: #94a3b8; font-size: 10px; font-weight: 650;
+        }
+        .as-page .as-input-wrap { position: relative; }
+        .as-page .as-input-icon {
+          position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+          color: #94a3b8; pointer-events: none;
+        }
+        .as-page .as-input {
+          display: block; width: 100%; height: 47px; border: 1px solid #dfe5ef;
+          border-radius: 12px; outline: none; padding: 0 14px;
+          background: #fff; color: #182338; font: inherit; font-size: 13px;
+          transition: border-color .18s, box-shadow .18s, background .18s;
+        }
+        .as-page .as-input::placeholder { color: #a2adbd; }
+        .as-page .as-input:focus {
+          border-color: #818cf8; box-shadow: 0 0 0 4px rgba(99,102,241,.11);
+          background: #fff;
+        }
+        .as-page .as-input.as-with-icon { padding-left: 42px; }
+        .as-page textarea.as-input {
+          height: auto; min-height: 100px; padding: 13px 14px; resize: vertical;
+          line-height: 1.65;
+        }
+        .as-page .as-field-help { margin-top: 7px; color: #8b97a9; font-size: 11px; line-height: 1.6; }
+        .as-page .as-section-title {
+          display: flex; align-items: center; gap: 10px;
+          margin: 0 0 18px; color: #1e293b; font-size: 14px; font-weight: 800;
+        }
+        .as-page .as-section-number {
+          display: flex; width: 27px; height: 27px; align-items: center;
+          justify-content: center; border-radius: 9px; background: #f1f5f9;
+          color: #64748b; font-size: 11px; font-weight: 850;
+        }
+        .as-page .as-section {
+          padding-top: 24px; border-top: 1px solid #edf0f5;
+        }
+        .as-page .as-section:first-child { padding-top: 0; border-top: 0; }
+        .as-page .as-dropdown {
+          position: absolute; z-index: 50; top: calc(100% + 8px); left: 0;
+          width: 100%; max-height: 260px; overflow-y: auto; padding: 6px;
+          border: 1px solid #e1e7f0; border-radius: 15px; background: #fff;
+          box-shadow: 0 18px 40px rgba(15,23,42,.13);
+        }
+        .as-page .as-option {
+          display: flex; width: 100%; align-items: flex-start; gap: 10px;
+          border: 0; border-radius: 10px; padding: 11px 10px;
+          text-align: left; background: transparent; cursor: pointer;
+          transition: background .15s;
+        }
+        .as-page .as-option:hover { background: #f5f7ff; }
+        .as-page .as-option-icon {
+          display: flex; width: 30px; height: 30px; flex: 0 0 auto;
+          align-items: center; justify-content: center; border-radius: 9px;
+          color: #64748b; background: #f1f5f9;
+        }
+        .as-page .as-option-text { min-width: 0; flex: 1; }
+        .as-page .as-option-title { display: block; color: #273449; font-size: 12px; font-weight: 750; }
+        .as-page .as-option-sub { display: block; margin-top: 4px; color: #8995a7; font-size: 10px; line-height: 1.5; }
+        .as-page .as-menu-message { padding: 14px 12px; color: #7b8798; font-size: 12px; line-height: 1.6; }
+        .as-page .as-note {
+          display: flex; gap: 11px; align-items: flex-start; padding: 14px 15px;
+          border: 1px solid #e0e7ff; border-radius: 14px;
+          background: #f7f8ff; color: #64748b; font-size: 11px; line-height: 1.65;
+        }
+        .as-page .as-price-preview {
+          display: flex; align-items: center; justify-content: space-between; gap: 15px;
+          border: 1px solid #e3e8f3; border-radius: 15px; padding: 15px 17px;
+          background: linear-gradient(120deg,#fbfcff,#f8faff);
+        }
+        .as-page .as-profit {
+          color: #047857; background: #ecfdf5; border: 1px solid #d1fae5;
+          border-radius: 10px; padding: 7px 10px; font-size: 11px; font-weight: 800;
+          white-space: nowrap;
+        }
+        .as-page .as-purchase-banner {
+          display: flex; align-items: flex-start; gap: 11px;
+          padding: 13px 14px; border: 1px solid #c7d2fe; border-radius: 13px;
+          background: #f5f7ff; color: #596681; font-size: 11px; line-height: 1.6;
+        }
+        .as-page .as-footer {
+          display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+          gap: 15px; border-top: 1px solid #edf0f5; padding: 19px 25px;
+          background: #fbfcfe; border-radius: 0 0 22px 22px;
+        }
+        .as-page .as-spin { animation: as-spin 1s linear infinite; }
+        @keyframes as-spin { to { transform: rotate(360deg); } }
+        @media (max-width: 640px) {
+          .as-page .as-panel { border-radius: 17px; }
+          .as-page .as-panel-head { padding: 17px; border-radius: 17px 17px 0 0; }
+          .as-page .as-form-body { padding: 18px; }
+          .as-page .as-footer { padding: 16px 18px; border-radius: 0 0 17px 17px; }
+          .as-page .as-footer > * { width: 100%; }
+          .as-page .as-footer .as-primary,
+          .as-page .as-footer .as-secondary { width: 100%; }
+          .as-page .as-price-preview { align-items: flex-start; flex-direction: column; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .as-page *, .as-page *::before, .as-page *::after {
+            animation-duration: .01ms !important;
+            transition-duration: .01ms !important;
+          }
+        }
+      `}</style>
 
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">
-              <PackagePlus size={25} />
+      {/* Page heading */}
+      <div className="mb-6">
+        <Link to="/dashboard/stock" className="as-back mb-5">
+          <ArrowLeft size={16} />
+          Back to inventory
+        </Link>
+
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="as-eyebrow mb-2">
+              <Sparkles size={13} />
+              Inventory management
             </div>
 
-            <div>
-              <p className="text-sm font-medium text-slate-500">
-                Inventory Management
-              </p>
+            <h1 className="text-2xl font-extrabold tracking-tight text-[#182338] sm:text-3xl">
+              Add new stock
+            </h1>
 
-              <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-                Add New Stock
-              </h1>
-            </div>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#718096]">
+              Add a product to your inventory, organize it, and set your pricing
+              and stock alert.
+            </p>
           </div>
 
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">
-            Add a new product to your inventory by entering its details below.
-          </p>
+          <div className="flex items-center gap-2 self-start rounded-xl border border-[#e5eaf2] bg-white px-3.5 py-2.5 sm:self-auto">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+              <Package size={16} />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#8995a7]">
+                New inventory
+              </p>
+              <p className="mt-0.5 text-xs font-bold text-[#263449]">
+                Product setup
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Form Card */}
-      <form
-        onSubmit={handleSubmit}
-        className="overflow-hidden rounded-2xl border border-[#c8cce0] bg-white shadow-sm"
-      >
-        {/* Card Header */}
-        <div className="border-b border-[#e2e5f0] bg-[#f8f8ff] px-5 py-5 sm:px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
-              <Boxes size={21} />
-            </div>
-
-            <div>
-              <h2 className="text-lg font-bold text-slate-950">
-                Product Information
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Enter the basic information and pricing details.
-              </p>
-            </div>
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="as-panel">
+        <div className="as-panel-head">
+          <div className="as-icon-box">
+            <Boxes size={21} />
           </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-sm font-extrabold text-[#1e293b] sm:text-base">
+              Product information
+            </h2>
+            <p className="mt-1 text-xs leading-5 text-[#7b8798]">
+              Enter the details needed to identify and manage this product.
+            </p>
+          </div>
+          <span className="hidden items-center gap-1.5 rounded-full border border-[#e5e7eb] bg-white px-3 py-1.5 text-[10px] font-bold text-[#64748b] sm:inline-flex">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            Draft
+          </span>
         </div>
 
-        {/* Form Body */}
-        <div className="space-y-6 p-5 sm:p-6">
-          {/* Product Details */}
-          <section>
-            <h3 className="mb-4 text-base font-bold text-slate-900">
-              Basic Details
+        <div className="as-form-body space-y-7 p-6 sm:p-7">
+          {/* Basic details */}
+          <section className="as-section">
+            <h3 className="as-section-title">
+              <span className="as-section-number">01</span>
+              Basic details
             </h3>
 
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-              <div className="relative">
-                <label
-                  htmlFor="productName"
-                  className="mb-2 block text-sm font-semibold text-slate-700"
-                >
-                  Product Name <span className="text-red-500">*</span>
+            <div className="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
+              {/* Product name / purchase item */}
+              <div ref={productRef} className="relative">
+                <label htmlFor="productName" className="as-field-label">
+                  Product name <span className="as-required">*</span>
                 </label>
 
-                <div className="relative">
-                  <Search
-                    size={17}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                  />
-
+                <div className="as-input-wrap">
+                  <Search className="as-input-icon" size={17} />
                   <input
                     id="productName"
                     type="text"
                     value={productSearch}
                     onChange={handleProductSearch}
                     onFocus={() => setProductSearchOpen(true)}
-                    placeholder="Search purchase items or enter a new product"
+                    placeholder="Search a purchase or enter a name"
                     autoComplete="off"
                     required
-                    className={`${inputClass} pl-10`}
+                    className="as-input as-with-icon"
+                    aria-expanded={productSearchOpen}
+                    aria-controls="purchase-item-options"
                   />
                 </div>
 
-                {productSearchOpen && productSearch.trim() && (
-                  <div className="absolute z-40 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-[#c8cce0] bg-white py-2 shadow-lg">
-                    {isLoadingPurchases ? (
-                      <p className="px-4 py-3 text-sm text-slate-500">
-                        Loading purchase items...
-                      </p>
-                    ) : filteredPurchaseItems.length > 0 ? (
-                      filteredPurchaseItems.map((item) => {
-                        const remaining =
-                          Number(item.quantity || 0) -
-                          Number(item.quantity_added_to_stock || 0);
+                <AnimatePresence>
+                  {productSearchOpen && productSearch.trim() && (
+                    <motion.div
+                      id="purchase-item-options"
+                      variants={dropdownVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      className="as-dropdown"
+                    >
+                      {isLoadingPurchases ? (
+                        <div className="as-menu-message flex items-center gap-2">
+                          <LoaderCircle size={15} className="as-spin" />
+                          Loading purchase items...
+                        </div>
+                      ) : filteredPurchaseItems.length > 0 ? (
+                        filteredPurchaseItems.map((item) => {
+                          const remaining =
+                            Number(item.quantity || 0) -
+                            Number(item.quantity_added_to_stock || 0);
 
-                        return (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => handleSelectPurchaseItem(item)}
-                            className="w-full px-4 py-3 text-left transition hover:bg-blue-50"
-                          >
-                            <span className="block text-sm font-semibold text-slate-800">
-                              {item.product_name}
-                            </span>
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => handleSelectPurchaseItem(item)}
+                              className="as-option"
+                            >
+                              <span className="as-option-icon">
+                                <ShoppingBag size={15} />
+                              </span>
+                              <span className="as-option-text">
+                                <span className="as-option-title">
+                                  {item.product_name}
+                                </span>
+                                <span className="as-option-sub">
+                                  Purchase: {item.purchase_number || "—"} ·{" "}
+                                  {remaining} unit(s) remaining
+                                </span>
+                                <span className="as-option-sub">
+                                  Unit price: {money(item.unit_price)}
+                                </span>
+                              </span>
+                              <span className="mt-1 text-indigo-600">
+                                <Plus size={15} />
+                              </span>
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="as-menu-message">
+                          No purchase items with remaining quantity. You can
+                          enter a new product manually.
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-                            <span className="mt-1 block text-xs text-slate-500">
-                              Purchase: {item.purchase_number} · Remaining:{" "}
-                              {remaining}
-                            </span>
-
-                            <span className="mt-1 block text-xs text-slate-500">
-                              Unit price: {item.unit_price}
-                            </span>
-                          </button>
-                        );
-                      })
-                    ) : (
-                      <p className="px-4 py-3 text-sm text-slate-500">
-                        No purchase items with remaining quantity. You can enter
-                        a new product manually.
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                <p className="mt-2 text-xs text-slate-500">
-                  Select an item from a purchase or enter a new product name.
+                <p className="as-field-help">
+                  Select an existing purchase item or type a new product name.
                 </p>
               </div>
 
@@ -565,113 +815,135 @@ const AddStock = () => {
                 name="sku"
                 value={formData.sku}
                 onChange={handleChange}
-                placeholder="Example: SKU-1001"
+                placeholder="e.g. SKU-1001"
+                icon={Hash}
               />
 
-              {/* Searchable Category Input */}
+              {/* Category */}
               <div ref={categoryRef} className="relative">
-                <label
-                  htmlFor="category"
-                  className="mb-2 block text-sm font-semibold text-slate-700"
-                >
-                  Category <span className="text-red-500">*</span>
+                <label htmlFor="category" className="as-field-label">
+                  Category <span className="as-required">*</span>
                 </label>
 
-                <div className="relative">
-                  <Search
-                    size={17}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                  />
-
+                <div className="as-input-wrap">
+                  <Tag className="as-input-icon" size={17} />
                   <input
                     id="category"
                     type="text"
                     value={categorySearch}
                     onChange={handleCategoryInput}
                     onFocus={() => setCategoryOpen(true)}
-                    placeholder="Search or enter a category"
+                    placeholder="Search or create a category"
                     autoComplete="off"
                     required
-                    className={`${inputClass} pl-10 pr-10`}
+                    className="as-input as-with-icon pr-10"
+                    aria-expanded={categoryOpen}
                   />
-
                   <ChevronDown
-                    size={17}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={16}
+                    className={`absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition-transform ${
+                      categoryOpen ? "rotate-180" : ""
+                    }`}
                   />
                 </div>
 
-                {categoryOpen && (
-                  <div className="absolute z-30 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-[#c8cce0] bg-white py-2 shadow-lg">
-                    {isLoadingOptions ? (
-                      <p className="px-4 py-3 text-sm text-slate-500">
-                        Loading categories...
-                      </p>
-                    ) : (
-                      <>
-                        {filteredCategories.map((category) => (
-                          <button
-                            key={category.id}
-                            type="button"
-                            onClick={() => handleSelectCategory(category)}
-                            className={`flex w-full items-center px-4 py-3 text-left text-sm transition hover:bg-blue-50 ${
-                              selectedCategory?.id === category.id
-                                ? "bg-blue-50 font-semibold text-blue-700"
-                                : "text-slate-700"
-                            }`}
-                          >
-                            {category.name}
-                          </button>
-                        ))}
+                <AnimatePresence>
+                  {categoryOpen && (
+                    <motion.div
+                      variants={dropdownVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      className="as-dropdown"
+                    >
+                      {isLoadingOptions ? (
+                        <div className="as-menu-message flex items-center gap-2">
+                          <LoaderCircle size={15} className="as-spin" />
+                          Loading categories...
+                        </div>
+                      ) : (
+                        <>
+                          {filteredCategories.map((category) => (
+                            <button
+                              key={category.id}
+                              type="button"
+                              onClick={() => handleSelectCategory(category)}
+                              className="as-option"
+                            >
+                              <span className="as-option-icon">
+                                <Layers3 size={15} />
+                              </span>
+                              <span className="as-option-text">
+                                <span className="as-option-title">
+                                  {category.name}
+                                </span>
+                                <span className="as-option-sub">
+                                  Product category
+                                </span>
+                              </span>
+                              {selectedCategory?.id === category.id && (
+                                <Check
+                                  size={16}
+                                  className="mt-1 text-indigo-600"
+                                />
+                              )}
+                            </button>
+                          ))}
 
-                        {categorySearch.trim() && !exactCategoryExists && (
-                          <button
-                            type="button"
-                            disabled={isCreatingCategory}
-                            onClick={handleCreateCategory}
-                            className="flex w-full items-center gap-2 border-t border-slate-100 px-4 py-3 text-left text-sm font-semibold text-blue-600 transition hover:bg-blue-50 disabled:opacity-60"
-                          >
-                            <Plus size={17} />
-                            {isCreatingCategory
-                              ? "Adding category..."
-                              : `Add "${categorySearch.trim()}"`}
-                          </button>
-                        )}
-
-                        {filteredCategories.length === 0 &&
-                          !categorySearch.trim() && (
-                            <p className="px-4 py-3 text-sm text-slate-500">
-                              No categories available yet.
-                            </p>
+                          {categorySearch.trim() && !exactCategoryExists && (
+                            <button
+                              type="button"
+                              disabled={isCreatingCategory}
+                              onClick={handleCreateCategory}
+                              className="as-option mt-1 border-t border-slate-100 pt-3 disabled:opacity-60"
+                            >
+                              <span className="as-option-icon bg-indigo-50 text-indigo-600">
+                                {isCreatingCategory ? (
+                                  <LoaderCircle size={15} className="as-spin" />
+                                ) : (
+                                  <Plus size={16} />
+                                )}
+                              </span>
+                              <span className="as-option-text">
+                                <span className="as-option-title text-indigo-700">
+                                  {isCreatingCategory
+                                    ? "Creating category..."
+                                    : `Create "${categorySearch.trim()}"`}
+                                </span>
+                                <span className="as-option-sub">
+                                  Add this category to your store
+                                </span>
+                              </span>
+                            </button>
                           )}
-                      </>
-                    )}
-                  </div>
-                )}
 
-                <p className="mt-2 text-xs text-slate-500">
-                  Select an existing category or add a new one here.
+                          {filteredCategories.length === 0 &&
+                            !categorySearch.trim() && (
+                              <div className="as-menu-message">
+                                No categories available yet. Start by creating
+                                one.
+                              </div>
+                            )}
+                        </>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <p className="as-field-help">
+                  Choose a saved category or create one without leaving this
+                  page.
                 </p>
               </div>
 
-              {/* Searchable Supplier Dropdown */}
+              {/* Supplier */}
               <div ref={supplierRef} className="relative">
-                <label
-                  htmlFor="supplier"
-                  className="mb-2 block text-sm font-semibold text-slate-700"
-                >
-                  Supplier
-                  <span className="ml-2 text-xs font-medium text-slate-400">
-                    Optional
-                  </span>
+                <label htmlFor="supplier" className="as-field-label">
+                  Supplier <span className="as-optional">Optional</span>
                 </label>
 
-                <div className="relative">
-                  <Search
-                    size={17}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                  />
-
+                <div className="as-input-wrap">
+                  <Truck className="as-input-icon" size={17} />
                   <input
                     id="supplier"
                     type="text"
@@ -682,81 +954,108 @@ const AddStock = () => {
                       setSupplierOpen(true);
                     }}
                     onFocus={() => setSupplierOpen(true)}
-                    placeholder="Search existing suppliers"
+                    placeholder="Search registered suppliers"
                     autoComplete="off"
-                    className={`${inputClass} pl-10 pr-10`}
+                    className="as-input as-with-icon pr-10"
+                    aria-expanded={supplierOpen}
                   />
-
                   <ChevronDown
-                    size={17}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={16}
+                    className={`absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition-transform ${
+                      supplierOpen ? "rotate-180" : ""
+                    }`}
                   />
                 </div>
 
-                {supplierOpen && (
-                  <div className="absolute z-30 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-[#c8cce0] bg-white py-2 shadow-lg">
-                    {isLoadingOptions ? (
-                      <p className="px-4 py-3 text-sm text-slate-500">
-                        Loading suppliers...
-                      </p>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedSupplier(null);
-                            setSupplierSearch("");
-                            setSupplierOpen(false);
-                          }}
-                          className="w-full border-b border-slate-100 px-4 py-3 text-left text-sm text-slate-500 transition hover:bg-slate-50"
-                        >
-                          No supplier
-                        </button>
-
-                        {filteredSuppliers.map((supplier) => (
+                <AnimatePresence>
+                  {supplierOpen && (
+                    <motion.div
+                      variants={dropdownVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      className="as-dropdown"
+                    >
+                      {isLoadingOptions ? (
+                        <div className="as-menu-message flex items-center gap-2">
+                          <LoaderCircle size={15} className="as-spin" />
+                          Loading suppliers...
+                        </div>
+                      ) : (
+                        <>
                           <button
-                            key={supplier.id}
                             type="button"
-                            onClick={() => handleSelectSupplier(supplier)}
-                            className={`w-full px-4 py-3 text-left transition hover:bg-blue-50 ${
-                              selectedSupplier?.id === supplier.id
-                                ? "bg-blue-50"
-                                : ""
-                            }`}
+                            onClick={() => {
+                              setSelectedSupplier(null);
+                              setSupplierSearch("");
+                              setSupplierOpen(false);
+                            }}
+                            className="as-option"
                           >
-                            <span className="block text-sm font-medium text-slate-800">
-                              {supplier.name}
+                            <span className="as-option-icon">
+                              <X size={15} />
                             </span>
-
-                            {supplier.company_name && (
-                              <span className="mt-1 block text-xs text-slate-500">
-                                {supplier.company_name}
+                            <span className="as-option-text">
+                              <span className="as-option-title">
+                                No supplier
                               </span>
-                            )}
+                              <span className="as-option-sub">
+                                Save this product without a supplier
+                              </span>
+                            </span>
                           </button>
-                        ))}
 
-                        {filteredSuppliers.length === 0 &&
-                          supplierSearch.trim() && (
-                            <p className="px-4 py-3 text-sm text-slate-500">
-                              No matching supplier. Add suppliers through the
-                              Suppliers page first.
-                            </p>
+                          {filteredSuppliers.map((supplier) => (
+                            <button
+                              key={supplier.id}
+                              type="button"
+                              onClick={() => handleSelectSupplier(supplier)}
+                              className="as-option"
+                            >
+                              <span className="as-option-icon">
+                                <Truck size={15} />
+                              </span>
+                              <span className="as-option-text">
+                                <span className="as-option-title">
+                                  {supplier.name}
+                                </span>
+                                {supplier.company_name && (
+                                  <span className="as-option-sub">
+                                    {supplier.company_name}
+                                  </span>
+                                )}
+                              </span>
+                              {selectedSupplier?.id === supplier.id && (
+                                <Check
+                                  size={16}
+                                  className="mt-1 text-indigo-600"
+                                />
+                              )}
+                            </button>
+                          ))}
+
+                          {filteredSuppliers.length === 0 &&
+                            supplierSearch.trim() && (
+                              <div className="as-menu-message">
+                                No matching supplier. Add suppliers through the
+                                Suppliers page first.
+                              </div>
+                            )}
+
+                          {suppliers.length === 0 && !supplierSearch.trim() && (
+                            <div className="as-menu-message">
+                              No suppliers yet. You can add one through the
+                              Suppliers page.
+                            </div>
                           )}
+                        </>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-                        {suppliers.length === 0 && !supplierSearch.trim() && (
-                          <p className="px-4 py-3 text-sm text-slate-500">
-                            No suppliers yet. You can add one through the
-                            Suppliers page.
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-
-                <p className="mt-2 text-xs text-slate-500">
-                  Choose a supplier already registered in your store.
+                <p className="as-field-help">
+                  Link a supplier to keep your inventory organized.
                 </p>
               </div>
 
@@ -766,16 +1065,19 @@ const AddStock = () => {
                   name="description"
                   value={formData.description}
                   onChange={handleChange}
-                  placeholder="Optional product details"
+                  placeholder="Add specifications, model details, color, or other useful notes..."
+                  multiline
+                  icon={FileText}
                 />
               </div>
             </div>
           </section>
 
-          {/* Stock Details */}
-          <section className="border-t border-slate-100 pt-6">
-            <h3 className="mb-4 text-base font-bold text-slate-900">
-              Stock Details
+          {/* Stock details */}
+          <section className="as-section">
+            <h3 className="as-section-title">
+              <span className="as-section-number">02</span>
+              Stock details
             </h3>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -787,76 +1089,155 @@ const AddStock = () => {
                 step="1"
                 value={formData.quantity}
                 onChange={handleChange}
-                placeholder="Example: 20"
+                placeholder="e.g. 20"
                 required
+                icon={Boxes}
               />
 
               <FormField
-                label="Minimum Stock Alert"
+                label="Minimum stock alert"
                 name="minStock"
                 type="number"
                 min="0"
                 step="1"
                 value={formData.minStock}
                 onChange={handleChange}
-                placeholder="Example: 5"
+                placeholder="e.g. 5"
                 required
+                icon={CircleAlert}
               />
+            </div>
+
+            <div className="as-note mt-5">
+              <Info size={16} className="mt-0.5 shrink-0 text-indigo-500" />
+              <p>
+                <strong className="text-[#46536b]">Stock alert tip:</strong> The
+                minimum stock value helps you identify when a product is running
+                low. Choose a threshold that suits your store.
+              </p>
             </div>
           </section>
 
           {/* Pricing */}
-          <section className="border-t border-slate-100 pt-6">
-            <h3 className="mb-4 text-base font-bold text-slate-900">Pricing</h3>
+          <section className="as-section">
+            <h3 className="as-section-title">
+              <span className="as-section-number">03</span>
+              Pricing
+            </h3>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <FormField
-                label="Purchase Price"
+                label="Purchase price"
                 name="purchasePrice"
                 type="number"
                 min="0"
                 step="0.01"
                 value={formData.purchasePrice}
                 onChange={handleChange}
-                placeholder="Example: 500"
+                placeholder="e.g. 500"
                 required
+                icon={DollarSign}
+                disabled={Boolean(selectedPurchaseItem)}
               />
 
               <FormField
-                label="Selling Price"
+                label="Selling price"
                 name="sellingPrice"
                 type="number"
                 min="0"
                 step="0.01"
                 value={formData.sellingPrice}
                 onChange={handleChange}
-                placeholder="Example: 650"
+                placeholder="e.g. 650"
                 required
+                icon={DollarSign}
               />
             </div>
+
+            {selectedPurchaseItem && (
+              <div className="as-purchase-banner mt-5">
+                <ShoppingBag
+                  size={16}
+                  className="mt-0.5 shrink-0 text-indigo-600"
+                />
+                <div>
+                  <p className="font-extrabold text-[#384765]">
+                    Purchase item selected
+                  </p>
+                  <p className="mt-1">
+                    Quantity and purchase price are based on the remaining
+                    purchase quantity. These values are checked again when you
+                    submit the form.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {estimatedProfit !== null && (
+              <div className="as-price-preview mt-5">
+                <div>
+                  <p className="text-xs font-bold text-[#7b8798]">
+                    Estimated profit per unit
+                  </p>
+                  <p
+                    className={`mt-1 text-xl font-extrabold ${
+                      estimatedProfit >= 0
+                        ? "text-emerald-600"
+                        : "text-rose-600"
+                    }`}
+                  >
+                    {estimatedProfit < 0 ? "−" : ""}
+                    {money(Math.abs(estimatedProfit))}
+                  </p>
+                  <p className="mt-1 text-[10px] text-[#8995a7]">
+                    Selling price minus purchase price
+                  </p>
+                </div>
+
+                {estimatedMargin !== null && (
+                  <div className="as-profit">
+                    {estimatedMargin.toFixed(1)}% margin
+                  </div>
+                )}
+              </div>
+            )}
           </section>
         </div>
 
-        {/* Footer Actions */}
-        <div className="flex flex-col-reverse gap-3 border-t border-[#e2e5f0] bg-[#f8f8ff] px-5 py-5 sm:flex-row sm:justify-end sm:px-6">
-          <Link
-            to="/dashboard/stock"
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            <X size={17} />
-            Cancel
-          </Link>
+        {/* Form actions */}
+        <div className="as-footer">
+          <p className="flex items-center gap-2 text-[11px] text-[#8995a7]">
+            <Info size={14} />
+            Fields marked <span className="as-required">*</span> are required.
+          </p>
 
-          <button
-            type="submit"
-            disabled={isSubmitting || isLoadingOptions || isCreatingCategory}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Save size={18} />
-            {isSubmitting ? "Adding Stock..." : "Add Stock"}
-          </button>
+          <div className="flex flex-col-reverse gap-3 sm:flex-row">
+            <Link to="/dashboard/stock" className="as-secondary">
+              <X size={16} />
+              Cancel
+            </Link>
+
+            <button
+              type="submit"
+              disabled={isSubmitting || isLoadingOptions || isCreatingCategory}
+              className="as-primary"
+            >
+              {isSubmitting ? (
+                <LoaderCircle size={17} className="as-spin" />
+              ) : (
+                <Save size={17} />
+              )}
+              {isSubmitting ? "Adding stock..." : "Save product"}
+            </button>
+          </div>
         </div>
       </form>
+
+      <p className="mt-4 flex items-center justify-center gap-2 pb-2 text-center text-[10px] text-[#9aa5b5]">
+        <Package size={13} />
+        Keep product details and prices accurate for reliable inventory
+        reporting.
+      </p>
     </motion.div>
   );
 };
@@ -871,42 +1252,55 @@ const FormField = ({
   min,
   step,
   required = false,
+  icon: Icon,
+  multiline = false,
+  disabled = false,
 }) => {
   return (
     <div>
-      <label
-        htmlFor={name}
-        className="mb-2 block text-sm font-semibold text-slate-700"
-      >
+      <label htmlFor={name} className="as-field-label">
         <span>{label}</span>
-
         {required ? (
-          <span
-            className="ml-1 text-red-500"
-            title="This field is required"
-            aria-label="Required"
-          >
+          <span className="as-required" aria-label="Required">
             *
           </span>
         ) : (
-          <span className="ml-2 text-xs font-medium text-slate-400">
-            Optional
-          </span>
+          <span className="as-optional">Optional</span>
         )}
       </label>
 
-      <input
-        id={name}
-        name={name}
-        type={type}
-        min={min}
-        step={step}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        required={required}
-        className={inputClass}
-      />
+      <div className="as-input-wrap">
+        {Icon && <Icon size={17} className="as-input-icon" />}
+
+        {multiline ? (
+          <textarea
+            id={name}
+            name={name}
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+            className={`as-input ${Icon ? "as-with-icon" : ""}`}
+            rows={4}
+            disabled={disabled}
+          />
+        ) : (
+          <input
+            id={name}
+            name={name}
+            type={type}
+            min={min}
+            step={step}
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+            required={required}
+            disabled={disabled}
+            className={`as-input ${Icon ? "as-with-icon" : ""} ${
+              disabled ? "cursor-not-allowed bg-slate-50 text-slate-500" : ""
+            }`}
+          />
+        )}
+      </div>
     </div>
   );
 };

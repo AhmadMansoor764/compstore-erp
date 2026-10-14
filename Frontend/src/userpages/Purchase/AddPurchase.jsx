@@ -48,7 +48,7 @@ const AddPurchase = () => {
         setLoadingSuppliers(true);
 
         const response = await fetch(
-          "http://localhost:3000/api/products/form-options",
+          `${import.meta.env.VITE_API_URL}/api/products/form-options`,
           {
             credentials: "include",
           },
@@ -205,26 +205,29 @@ const AddPurchase = () => {
     try {
       setSaving(true);
 
-      const response = await fetch("http://localhost:3000/api/purchases", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/purchases`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            supplier_id: Number(supplierId),
+            invoice_number: invoiceNumber.trim() || null,
+            purchase_date: purchaseDate,
+            status,
+            paid_amount: paid,
+            notes: notes.trim() || null,
+            items: products.map((product) => ({
+              product_name: product.name.trim(),
+              quantity: Number(product.quantity),
+              unit_price: Number(product.price),
+            })),
+          }),
         },
-        body: JSON.stringify({
-          supplier_id: Number(supplierId),
-          invoice_number: invoiceNumber.trim() || null,
-          purchase_date: purchaseDate,
-          status,
-          paid_amount: paid,
-          notes: notes.trim() || null,
-          items: products.map((product) => ({
-            product_name: product.name.trim(),
-            quantity: Number(product.quantity),
-            unit_price: Number(product.price),
-          })),
-        }),
-      });
+      );
 
       const data = await response.json();
 

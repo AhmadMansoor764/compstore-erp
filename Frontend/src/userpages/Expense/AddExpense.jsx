@@ -75,24 +75,27 @@ const AddExpense = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:3000/api/expenses", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/expenses`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title: title.trim(),
+            category,
+            amount: Number(amount),
+            expenseDate,
+            paymentMethod,
+            status,
+            paidBy: paidBy.trim(),
+            reference: reference.trim(),
+            description: description.trim(),
+          }),
         },
-        body: JSON.stringify({
-          title: title.trim(),
-          category,
-          amount: Number(amount),
-          expenseDate,
-          paymentMethod,
-          status,
-          paidBy: paidBy.trim(),
-          reference: reference.trim(),
-          description: description.trim(),
-        }),
-      });
+      );
 
       const data = await response.json();
 
