@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
+import "dotenv/config";
 import cookieParser from "cookie-parser";
 import authRoutes from "./src/routes/authRoutes.js";
 import categoryRoutes from "./src/routes/categoryRoutes.js";
@@ -18,14 +18,17 @@ app.get("/", (req, res) => {
   });
 });
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://omarzai-store.netlify.app",
+];
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: allowedOrigins,
     credentials: true,
   }),
 );
-
-dotenv.config();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -40,6 +43,8 @@ app.use("/api/purchases", purchaseRoutes);
 app.use("/api/expenses", expensesRoutes);
 app.use("/api/sales", salesRoutes);
 
-app.listen(process.env.PORT, () => {
-  console.log("Server is running on port", process.env.PORT);
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log("Server is running on port", PORT);
 });
