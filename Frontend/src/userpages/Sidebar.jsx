@@ -1,5 +1,6 @@
 import React from "react";
 import { NavLink, Link, useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
 
 import {
   LayoutDashboard,
@@ -15,23 +16,32 @@ import {
   Plus,
 } from "lucide-react";
 
+import { useLanguage } from "../context/LanguageContext";
+
 const navigationItems = [
-  { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-  { label: "Stock", path: "/dashboard/stock", icon: Package },
-  { label: "Sales", path: "/dashboard/sales", icon: ShoppingCart },
-  { label: "Purchases", path: "/dashboard/purchases", icon: ClipboardList },
-  { label: "Expenses", path: "/dashboard/expenses", icon: ReceiptText },
-  { label: "Reports", path: "/dashboard/reports", icon: BarChart3 },
-  { label: "Profile", path: "/dashboard/profile", icon: UserRound },
+  { label: "dashboard", path: "/dashboard", icon: LayoutDashboard },
+  { label: "stock", path: "/dashboard/stock", icon: Package },
+  { label: "sales", path: "/dashboard/sales", icon: ShoppingCart },
+  { label: "purchases", path: "/dashboard/purchases", icon: ClipboardList },
+  { label: "expenses", path: "/dashboard/expenses", icon: ReceiptText },
+  { label: "reports", path: "/dashboard/reports", icon: BarChart3 },
+  { label: "profile", path: "/dashboard/profile", icon: UserRound },
+  { label: "suppliers", path: "/dashboard/suppliers", icon: Store },
 ];
 
 const Sidebar = ({ mobileOpen, setMobileOpen }) => {
+  const { isRTL } = useLanguage();
   const closeMobile = () => setMobileOpen(false);
 
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden min-h-screen w-[285px] shrink-0 flex-col border-r border-[#c5c9dc] bg-[#f3f4ff] lg:flex">
+      <aside
+        dir={isRTL ? "rtl" : "ltr"}
+        className={`hidden min-h-screen  w-[285px] shrink-0 flex-col border-r border-[#c5c9dc] bg-[#f3f4ff] lg:flex ${
+          isRTL ? "border-r-0 border-l" : ""
+        }`}
+      >
         <SidebarContent />
       </aside>
 
@@ -45,20 +55,35 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
 
       {/* Mobile Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[285px] flex-col bg-[#f3f4ff] shadow-2xl transition-transform duration-300 lg:hidden ${
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        dir={isRTL ? "rtl" : "ltr"}
+        className={`fixed inset-y-0 z-50 flex w-[285px] flex-col bg-[#f3f4ff] shadow-2xl transition-transform duration-300 lg:hidden ${
+          isRTL
+            ? `right-0 ${mobileOpen ? "translate-x-0" : "translate-x-full"}`
+            : `left-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`
         }`}
       >
-        <div className="flex items-center justify-between px-5 py-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e1e4f2]">
+        {/* Mobile Header */}
+        <div
+          className={`flex shrink-0 items-center justify-between px-5 py-5 ${
+            isRTL ? "flex-row-reverse" : ""
+          }`}
+        >
+          <div
+            className={`flex items-center gap-3 ${
+              isRTL ? "flex-row-reverse" : ""
+            }`}
+          >
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e1e4f2]">
               <Store size={24} className="text-[#2563eb]" />
             </div>
 
-            <div>
-              <h1 className="text-lg font-bold text-[#1746b8]">Main Branch</h1>
+            <div className={isRTL ? "text-right" : "text-left"}>
+              <h1 className="text-lg font-bold text-[#1746b8]">
+                <SidebarText translationKey="mainBranch" />
+              </h1>
+
               <p className="text-xs font-medium text-slate-700">
-                Admin Terminal
+                <SidebarText translationKey="adminTerminal" />
               </p>
             </div>
           </div>
@@ -67,7 +92,7 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
             type="button"
             onClick={closeMobile}
             aria-label="Close sidebar"
-            className="rounded-lg p-2 text-slate-700 hover:bg-white"
+            className="shrink-0 rounded-lg p-2 text-slate-700 hover:bg-white"
           >
             <X size={22} />
           </button>
@@ -79,8 +104,16 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
   );
 };
 
+/* Shared translation component */
+const SidebarText = ({ translationKey }) => {
+  const { t } = useLanguage();
+
+  return t(`sidebar.${translationKey}`);
+};
+
 const SidebarContent = ({ closeMobile }) => {
   const navigate = useNavigate();
+  const { t, isRTL } = useLanguage();
 
   const handleLogout = async () => {
     try {
@@ -92,50 +125,68 @@ const SidebarContent = ({ closeMobile }) => {
         },
       );
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type");
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Logout failed");
+      const data = contentType?.includes("application/json")
+        ? await response.json()
+        : await response.text();
+
+      if (!response.ok || (typeof data === "object" && !data.success)) {
+        throw new Error(
+          typeof data === "string"
+            ? data
+            : data?.message || t("sidebar.logoutFailed"),
+        );
       }
 
       closeMobile?.();
       navigate("/login", { replace: true });
     } catch (error) {
       console.error("Logout error:", error);
-      alert("Unable to sign out. Please try again.");
+
+      toast.error(error.message || t("sidebar.logoutError"));
     }
   };
 
   return (
-    <>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {/* Branch Header */}
-      <div className="flex items-center gap-4 px-6 py-5">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e1e4f2]">
+      <div
+        className={`flex shrink-0 items-center gap-4 px-6 py-5 ${
+          isRTL ? "flex-row-reverse text-right" : "text-left"
+        }`}
+      >
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e1e4f2]">
           <Store size={24} className="text-[#2563eb]" />
         </div>
 
-        <div>
-          <h1 className="text-xl font-bold text-[#1746b8]">Main Branch</h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl font-bold text-[#1746b8]">
+            {t("sidebar.mainBranch")}
+          </h1>
+
           <p className="text-sm font-medium tracking-wide text-slate-700">
-            Admin Terminal
+            {t("sidebar.adminTerminal")}
           </p>
         </div>
       </div>
 
       {/* New Sale Button */}
-      <div className="px-4 pt-5">
+      <div className="shrink-0 px-4 pt-5">
         <Link
           to="/dashboard/sales/new"
           onClick={closeMobile}
-          className="flex h-[53px] items-center justify-center gap-3 rounded-xl bg-[#2563eb] text-base font-semibold text-white shadow-sm transition hover:bg-[#1d4ed8]"
+          className={`flex h-[53px] items-center justify-center gap-3 rounded-xl bg-[#2563eb] text-base font-semibold text-white shadow-sm transition hover:bg-[#1d4ed8] ${
+            isRTL ? "flex-row-reverse" : ""
+          }`}
         >
           <Plus size={23} />
-          New Sale
+          {t("sidebar.newSale")}
         </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="mt-6 flex-1 space-y-2 px-4">
+      <nav className="mt-6 min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-4 pb-4">
         {navigationItems.map((item) => {
           const Icon = item.icon;
 
@@ -146,7 +197,9 @@ const SidebarContent = ({ closeMobile }) => {
               end={item.path === "/dashboard"}
               onClick={closeMobile}
               className={({ isActive }) =>
-                `group flex h-[51px] items-center gap-4 rounded-xl px-5 text-[15px] font-medium transition ${
+                `group flex h-[51px] shrink-0 items-center gap-4 rounded-xl px-5 text-[15px] font-medium transition ${
+                  isRTL ? "flex-row-reverse text-right" : "text-left"
+                } ${
                   isActive
                     ? "bg-[#2563eb] text-white shadow-sm"
                     : "text-slate-700 hover:bg-white hover:text-[#2563eb]"
@@ -158,13 +211,16 @@ const SidebarContent = ({ closeMobile }) => {
                   <Icon
                     size={23}
                     strokeWidth={isActive ? 2.4 : 2}
-                    className={
+                    className={`shrink-0 ${
                       isActive
                         ? "text-white"
                         : "text-slate-700 group-hover:text-[#2563eb]"
-                    }
+                    }`}
                   />
-                  <span>{item.label}</span>
+
+                  <span className="min-w-0 flex-1">
+                    {t(`sidebar.${item.label}`)}
+                  </span>
                 </>
               )}
             </NavLink>
@@ -173,19 +229,21 @@ const SidebarContent = ({ closeMobile }) => {
       </nav>
 
       {/* Bottom Navigation */}
-      <div className="space-y-2 px-4 pb-7">
+      <div className="shrink-0 space-y-2 px-4 pb-7 pt-3">
         <div className="mb-5 h-px bg-[#c5c9dc]" />
 
         <button
           type="button"
           onClick={handleLogout}
-          className="flex h-[50px] w-full items-center gap-4 rounded-xl px-5 text-[15px] font-medium text-slate-700 transition hover:bg-white hover:text-red-600"
+          className={`flex h-[50px] w-full items-center gap-4 rounded-xl px-5 text-[15px] font-medium text-slate-700 transition hover:bg-white hover:text-red-600 ${
+            isRTL ? "flex-row-reverse text-right" : "text-left"
+          }`}
         >
-          <LogOut size={23} />
-          Sign Out
+          <LogOut size={23} className="shrink-0" />
+          <span>{t("sidebar.signOut")}</span>
         </button>
       </div>
-    </>
+    </div>
   );
 };
 

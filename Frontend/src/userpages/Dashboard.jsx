@@ -1,9 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   WalletCards,
@@ -17,13 +12,15 @@ import {
   Boxes,
 } from "lucide-react";
 
+import { useLanguage } from "../context/LanguageContext";
+
 import SalesTrendCard from "./dashboard/SalesTrendCard";
 import IncomeExpenseCard from "./dashboard/IncomeExpenseCard";
 import SalesCategoryCard from "./dashboard/SalesCategoryCard";
 import QuickActions from "./dashboard/QuickActions";
 import LowStockAlerts from "./dashboard/LowStockAlerts";
 
-const API_BASE_URL = `${import.meta.env.VITE_API_URL}`;
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const getLocalDate = () => {
   const date = new Date();
@@ -41,9 +38,16 @@ const toNumber = (value) => {
 
 const getDateKey = (value) => {
   if (!value) return "";
-  if (typeof value === "string") return value.slice(0, 10);
 
-  return new Date(value).toISOString().slice(0, 10);
+  if (typeof value === "string") {
+    return value.slice(0, 10);
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toISOString().slice(0, 10);
 };
 
 const formatMoney = (value) =>
@@ -571,12 +575,11 @@ const StatCard = ({
   tone = "blue",
   highlight = false,
   loading = false,
+  loadingText = "Loading",
 }) => (
   <article
     className={
-      "smd-stat smd-stat--" +
-      tone +
-      (highlight ? " smd-stat--highlight" : "")
+      "smd-stat smd-stat--" + tone + (highlight ? " smd-stat--highlight" : "")
     }
   >
     <div className="smd-stat-top">
@@ -590,7 +593,7 @@ const StatCard = ({
       <div
         className="smd-skeleton"
         role="status"
-        aria-label={"Loading " + title}
+        aria-label={`${loadingText} ${title}`}
       />
     ) : (
       <p className="smd-stat-value">{amount}</p>
@@ -606,6 +609,7 @@ const DashboardWidget = ({ children }) => (
 
 const Dashboard = () => {
   const reduceMotion = useReducedMotion();
+  const { t, language } = useLanguage();
 
   const [selectedDate, setSelectedDate] = useState(getLocalDate());
   const [store, setStore] = useState(null);
@@ -621,6 +625,10 @@ const Dashboard = () => {
     setError("");
 
     try {
+      if (!API_BASE_URL) {
+        throw new Error(t("dashboard.errors.apiUrlMissing"));
+      }
+
       const endpoints = [
         "/api/stores/me",
         "/api/sales",
@@ -642,19 +650,29 @@ const Dashboard = () => {
       const failedResponse = responses.find((response) => !response.ok);
 
       if (failedResponse) {
-        if (
-          failedResponse.status === 401 ||
-          failedResponse.status === 403
-        ) {
-          throw new Error(
-            "Your session may have expired. Please log in again.",
-          );
+        if (failedResponse.status === 401 || failedResponse.status === 403) {
+          throw new Error(t("dashboard.errors.sessionExpired"));
         }
 
         throw new Error(
-          `Could not load dashboard data (HTTP ${failedResponse.status}).`,
+          t("dashboard.errors.httpError").replace(
+            "{status}",
+            String(failedResponse.status),
+          ),
         );
       }
+
+      const results = await Promise.all(
+        responses.map(async (response) => {
+          const contentType = response.headers.get("content-type") || "";
+
+          if (!contentType.includes("application/json")) {
+            throw new Error(t("dashboard.errors.invalidResponse"));
+          }
+
+          return response.json();
+        }),
+      );
 
       const [
         storeResult,
@@ -662,68 +680,59 @@ const Dashboard = () => {
         purchasesResult,
         expensesResult,
         productsResult,
-      ] = await Promise.all(
-        responses.map((response) => response.json()),
-      );
+      ] = results;
 
       if (
-        storeResult.success === false ||
-        salesResult.success === false ||
-        purchasesResult.success === false ||
-        expensesResult.success === false ||
-        productsResult.success === false
+        storeResult?.success === false ||
+        salesResult?.success === false ||
+        purchasesResult?.success === false ||
+        expensesResult?.success === false ||
+        productsResult?.success === false
       ) {
-        throw new Error(
-          "The server could not load all dashboard data.",
-        );
+        throw new Error(t("dashboard.errors.loadAll"));
       }
 
-      setStore(storeResult.store ?? null);
+      setStore(storeResult?.store ?? null);
 
-      setSales(
-        Array.isArray(salesResult.sales) ? salesResult.sales : [],
-      );
+      setSales(Array.isArray(salesResult?.sales) ? salesResult.sales : []);
 
       setPurchases(
-        Array.isArray(purchasesResult.purchases)
+        Array.isArray(purchasesResult?.purchases)
           ? purchasesResult.purchases
           : [],
       );
 
       setExpenses(
-        Array.isArray(expensesResult.expenses)
-          ? expensesResult.expenses
-          : [],
+        Array.isArray(expensesResult?.expenses) ? expensesResult.expenses : [],
       );
 
       setProducts(
-        Array.isArray(productsResult.products)
-          ? productsResult.products
-          : [],
+        Array.isArray(productsResult?.products) ? productsResult.products : [],
       );
     } catch (err) {
-      setError(err.message || "Failed to load dashboard data.");
+      setError(err.message || t("dashboard.errors.loadFailed"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
   const formattedDate = useMemo(() => {
-    if (!selectedDate) return "All dates";
+    if (!selectedDate) return t("dashboard.allDates");
 
-    return new Date(
-      `${selectedDate}T00:00:00`,
-    ).toLocaleDateString("en-US", {
+    const locale =
+      language === "fa" ? "fa-AF" : language === "ps" ? "ps-AF" : "en-US";
+
+    return new Date(`${selectedDate}T00:00:00`).toLocaleDateString(locale, {
       weekday: "long",
       month: "short",
       day: "numeric",
       year: "numeric",
     });
-  }, [selectedDate]);
+  }, [selectedDate, language, t]);
 
   const dashboardData = useMemo(() => {
     const dailySales = sales.filter(
@@ -734,16 +743,14 @@ const Dashboard = () => {
 
     const dailyPurchases = purchases.filter(
       (purchase) =>
-        getDateKey(
-          purchase.purchase_date ?? purchase.created_at,
-        ) === selectedDate && purchase.status !== "Cancelled",
+        getDateKey(purchase.purchase_date ?? purchase.created_at) ===
+          selectedDate && purchase.status !== "Cancelled",
     );
 
     const dailyExpenses = expenses.filter(
       (expense) =>
-        getDateKey(
-          expense.expense_date ?? expense.created_at,
-        ) === selectedDate && expense.status === "Paid",
+        getDateKey(expense.expense_date ?? expense.created_at) ===
+          selectedDate && expense.status === "Paid",
     );
 
     const revenue = dailySales.reduce(
@@ -752,8 +759,7 @@ const Dashboard = () => {
     );
 
     const purchaseTotal = dailyPurchases.reduce(
-      (total, purchase) =>
-        total + toNumber(purchase.total_amount),
+      (total, purchase) => total + toNumber(purchase.total_amount),
       0,
     );
 
@@ -778,9 +784,7 @@ const Dashboard = () => {
       const discount = toNumber(sale.discount);
 
       const discountRatio =
-        subtotal > 0
-          ? Math.max(0, (subtotal - discount) / subtotal)
-          : 1;
+        subtotal > 0 ? Math.max(0, (subtotal - discount) / subtotal) : 1;
 
       return total + itemProfit * discountRatio;
     }, 0);
@@ -798,16 +802,14 @@ const Dashboard = () => {
     () =>
       products.reduce(
         (total, product) =>
-          total +
-          toNumber(product.quantity) *
-            toNumber(product.purchase_price),
+          total + toNumber(product.quantity) * toNumber(product.purchase_price),
         0,
       ),
     [products],
   );
 
   return (
-    <div className="smd">
+    <div className="smd" dir={language === "en" ? "ltr" : "rtl"}>
       <style>{DASHBOARD_CSS}</style>
 
       <motion.div
@@ -820,22 +822,19 @@ const Dashboard = () => {
           <div>
             <span className="smd-eyebrow">
               <LayoutDashboard size={14} aria-hidden="true" />
-              Store workspace
+              {t("dashboard.storeWorkspace")}
             </span>
 
-            <h1>Dashboard</h1>
+            <h1>{t("dashboard.title")}</h1>
 
             <p className="smd-header-description">
-              A clear view of your store, from sales to stock.
+              {t("dashboard.description")}
             </p>
           </div>
 
           <div className="smd-date-control">
-            <label
-              className="smd-date-label"
-              htmlFor="dashboard-date"
-            >
-              Reporting date
+            <label className="smd-date-label" htmlFor="dashboard-date">
+              {t("dashboard.reportingDate")}
             </label>
 
             <div className="smd-date-input">
@@ -844,9 +843,7 @@ const Dashboard = () => {
                 id="dashboard-date"
                 type="date"
                 value={selectedDate}
-                onChange={(event) =>
-                  setSelectedDate(event.target.value)
-                }
+                onChange={(event) => setSelectedDate(event.target.value)}
               />
             </div>
           </div>
@@ -862,8 +859,9 @@ const Dashboard = () => {
             <button
               type="button"
               onClick={fetchDashboardData}
+              disabled={loading}
             >
-              Try again
+              {loading ? t("dashboard.loading") : t("dashboard.tryAgain")}
             </button>
           </div>
         )}
@@ -875,14 +873,10 @@ const Dashboard = () => {
             aria-busy={loading}
           >
             <div className="smd-balance-top">
-              <h2 id="balance-heading">Available Cash</h2>
+              <h2 id="balance-heading">{t("dashboard.availableCash")}</h2>
 
               <span className="smd-balance-icon">
-                <WalletCards
-                  size={21}
-                  strokeWidth={1.6}
-                  aria-hidden="true"
-                />
+                <WalletCards size={21} strokeWidth={1.6} aria-hidden="true" />
               </span>
             </div>
 
@@ -890,7 +884,7 @@ const Dashboard = () => {
               <div
                 className="smd-skeleton smd-skeleton--dark"
                 role="status"
-                aria-label="Loading available cash"
+                aria-label={t("dashboard.loadingAvailableCash")}
               />
             ) : (
               <p className="smd-balance-value">
@@ -899,27 +893,33 @@ const Dashboard = () => {
             )}
 
             <p className="smd-balance-caption">
-              Current store balance
+              {t("dashboard.currentStoreBalance")}
             </p>
 
             <div className="smd-inventory">
               <div>
                 <div className="smd-inventory-label">
                   <Package size={14} aria-hidden="true" />
-                  <span>Total Products</span>
+                  <span>{t("dashboard.totalProducts")}</span>
                 </div>
 
                 <p className="smd-inventory-value">
                   {loading
                     ? "…"
-                    : products.length.toLocaleString("en-US")}
+                    : products.length.toLocaleString(
+                        language === "fa"
+                          ? "fa-AF"
+                          : language === "ps"
+                            ? "ps-AF"
+                            : "en-US",
+                      )}
                 </p>
               </div>
 
               <div>
                 <div className="smd-inventory-label">
                   <Boxes size={14} aria-hidden="true" />
-                  <span>Stock Value</span>
+                  <span>{t("dashboard.stockValue")}</span>
                 </div>
 
                 <p className="smd-inventory-value">
@@ -935,45 +935,49 @@ const Dashboard = () => {
             aria-busy={loading}
           >
             <div className="smd-region-title">
-              <h2 id="daily-heading">Daily performance</h2>
+              <h2 id="daily-heading">{t("dashboard.dailyPerformance")}</h2>
               <span>{formattedDate}</span>
             </div>
 
             <div className="smd-metric-grid">
               <StatCard
-                title="Revenue"
+                title={t("dashboard.revenue")}
                 amount={formatMoney(dashboardData.revenue)}
                 icon={TrendingUp}
                 tone="emerald"
-                subtitle="Completed sales on selected date"
+                subtitle={t("dashboard.revenueSubtitle")}
                 loading={loading}
+                loadingText={t("dashboard.loading")}
               />
 
               <StatCard
-                title="Purchases"
+                title={t("dashboard.purchases")}
                 amount={formatMoney(dashboardData.purchases)}
                 icon={ShoppingCart}
                 tone="violet"
-                subtitle="Non-cancelled purchases on selected date"
+                subtitle={t("dashboard.purchasesSubtitle")}
                 loading={loading}
+                loadingText={t("dashboard.loading")}
               />
 
               <StatCard
-                title="Expenses"
+                title={t("dashboard.expenses")}
                 amount={formatMoney(dashboardData.expenses)}
                 icon={AlertTriangle}
                 tone="rose"
-                subtitle="Paid expenses on selected date"
+                subtitle={t("dashboard.expensesSubtitle")}
                 loading={loading}
+                loadingText={t("dashboard.loading")}
               />
 
               <StatCard
-                title="Net Profit"
+                title={t("dashboard.netProfit")}
                 amount={formatMoney(dashboardData.netProfit)}
                 icon={PiggyBank}
                 tone="blue"
-                subtitle="Estimated gross profit minus paid expenses"
+                subtitle={t("dashboard.netProfitSubtitle")}
                 loading={loading}
+                loadingText={t("dashboard.loading")}
                 highlight
               />
             </div>
@@ -981,23 +985,14 @@ const Dashboard = () => {
         </div>
 
         <div className="smd-content">
-          <section
-            className="smd-main"
-            aria-labelledby="analytics-heading"
-          >
-            <h2
-              className="smd-section-heading"
-              id="analytics-heading"
-            >
-              Performance analytics
+          <section className="smd-main" aria-labelledby="analytics-heading">
+            <h2 className="smd-section-heading" id="analytics-heading">
+              {t("dashboard.performanceAnalytics")}
             </h2>
 
             <div className="smd-chart-stack">
               <DashboardWidget>
-                <SalesTrendCard
-                  sales={sales}
-                  selectedDate={selectedDate}
-                />
+                <SalesTrendCard sales={sales} selectedDate={selectedDate} />
               </DashboardWidget>
 
               <div className="smd-chart-pair">
@@ -1020,15 +1015,9 @@ const Dashboard = () => {
             </div>
           </section>
 
-          <aside
-            className="smd-aside"
-            aria-labelledby="operations-heading"
-          >
-            <h2
-              className="smd-section-heading"
-              id="operations-heading"
-            >
-              Store operations
+          <aside className="smd-aside" aria-labelledby="operations-heading">
+            <h2 className="smd-section-heading" id="operations-heading">
+              {t("dashboard.storeOperations")}
             </h2>
 
             <div className="smd-sidebar-stack">
@@ -1037,10 +1026,7 @@ const Dashboard = () => {
               </DashboardWidget>
 
               <DashboardWidget>
-                <LowStockAlerts
-                  products={products}
-                  loading={loading}
-                />
+                <LowStockAlerts products={products} loading={loading} />
               </DashboardWidget>
             </div>
           </aside>

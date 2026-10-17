@@ -14,13 +14,15 @@ import {
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
+import { useLanguage } from "../context/LanguageContext";
 
 const Signup = () => {
   const navigate = useNavigate();
+  const { language, changeLanguage, isRTL, t } = useLanguage();
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [languageOpen, setLanguageOpen] = useState(false);
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const {
@@ -32,24 +34,21 @@ const Signup = () => {
 
   const password = watch("password");
 
-  // LANGUAGES
-
   const languages = [
     { label: "English (US)", value: "en" },
     { label: "فارسی", value: "fa" },
     { label: "پښتو", value: "ps" },
   ];
 
-  const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
+  const currentLanguage =
+    languages.find((item) => item.value === language) || languages[0];
 
-  const handleLanguageChange = (language) => {
-    setSelectedLanguage(language);
-    setLanguageOpen(false);
-    console.log("Selected language:", language.value);
+  const handleLanguageChange = (nextLanguage) => {
+    changeLanguage(nextLanguage);
+    setShowLanguageMenu(false);
   };
 
   // NORMAL SIGNUP
-
   const onSubmit = async (data) => {
     try {
       setIsLoading(true);
@@ -80,22 +79,25 @@ const Signup = () => {
         const message =
           typeof result === "string"
             ? result
-            : result.message || "Registration failed. Please try again.";
+            : result?.message || t("signup.failed");
 
         throw new Error(message);
       }
 
-      toast.success(result.message || "Account created successfully.");
+      toast.success(
+        typeof result === "object" && result?.message
+          ? result.message
+          : t("signup.success"),
+      );
+
       navigate("/dashboard");
     } catch (error) {
       console.error("Signup error:", error);
 
       if (error instanceof TypeError) {
-        toast.error(
-          "Could not connect to the server. Check your API URL and connection.",
-        );
+        toast.error(t("signup.connectionError"));
       } else {
-        toast.error(error.message || "Something went wrong. Please try again.");
+        toast.error(error.message || t("signup.failed"));
       }
     } finally {
       setIsLoading(false);
@@ -103,10 +105,9 @@ const Signup = () => {
   };
 
   // GOOGLE SIGNUP
-
   const handleGoogleSuccess = async (credentialResponse) => {
     if (!credentialResponse?.credential) {
-      toast.error("Google did not return a credential. Please try again.");
+      toast.error(t("signup.googleError"));
       return;
     }
 
@@ -136,32 +137,33 @@ const Signup = () => {
         throw new Error(
           typeof result === "string"
             ? result
-            : result?.message || "Google signup failed.",
+            : result?.message || t("signup.googleFailed"),
         );
       }
 
-      toast.success(result.message || "Signed in with Google successfully.");
+      toast.success(
+        typeof result === "object" && result?.message
+          ? result.message
+          : t("signup.googleSuccess"),
+      );
+
       navigate("/dashboard");
     } catch (error) {
       console.error("Google signup error:", error);
-      toast.error(error.message || "Google signup failed. Please try again.");
+      toast.error(error.message || t("signup.googleFailed"));
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleError = () => {
-    toast.error("Google signup was unsuccessful. Please try again.");
+    toast.error(t("signup.googleFailed"));
   };
-
-  // ANIMATION VARIANTS
 
   const containerVariants = {
     hidden: {},
     visible: {
-      transition: {
-        staggerChildren: 0.08,
-      },
+      transition: { staggerChildren: 0.08 },
     },
   };
 
@@ -178,7 +180,7 @@ const Signup = () => {
   };
 
   const leftVariants = {
-    hidden: { opacity: 0, x: -25 },
+    hidden: { opacity: 0, x: isRTL ? 25 : -25 },
     visible: {
       opacity: 1,
       x: 0,
@@ -190,48 +192,30 @@ const Signup = () => {
   };
 
   return (
-    <main className="min-h-screen w-full bg-white text-slate-900">
+    <main
+      dir={isRTL ? "rtl" : "ltr"}
+      className="min-h-screen w-full bg-white text-slate-900"
+    >
       <div className="grid min-h-screen lg:grid-cols-2">
         {/* LEFT SIDE */}
-
-        <section
-          className="
-            relative hidden min-h-screen overflow-hidden
-            bg-[#f3f4ff] lg:flex lg:flex-col
-          "
-        >
-          <div
-            className="
-              pointer-events-none absolute inset-0 opacity-[0.28]
-              [background-image:radial-gradient(#94a3b8_0.65px,transparent_0.65px)]
-              [background-size:20px_20px]
-            "
-          />
+        <section className="relative hidden min-h-screen overflow-hidden bg-[#f3f4ff] lg:flex lg:flex-col">
+          <div className="pointer-events-none absolute inset-0 opacity-[0.28] [background-image:radial-gradient(#94a3b8_0.65px,transparent_0.65px)] [background-size:20px_20px]" />
 
           <motion.div
             initial={{ opacity: 0, scale: 0.7 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1.1 }}
-            className="
-              pointer-events-none absolute -left-40 -top-40
-              h-[500px] w-[500px] rounded-full
-              bg-blue-200/20 blur-3xl
-            "
+            className="pointer-events-none absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-blue-200/20 blur-3xl"
           />
 
           <motion.div
             initial={{ opacity: 0, scale: 0.7 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1.1, delay: 0.2 }}
-            className="
-              pointer-events-none absolute -bottom-40 -right-40
-              h-[450px] w-[450px] rounded-full
-              bg-indigo-200/20 blur-3xl
-            "
+            className="pointer-events-none absolute -bottom-40 -right-40 h-[450px] w-[450px] rounded-full bg-indigo-200/20 blur-3xl"
           />
 
           {/* LOGO */}
-
           <motion.div
             variants={leftVariants}
             initial="hidden"
@@ -242,34 +226,19 @@ const Signup = () => {
               <motion.div
                 whileHover={{ scale: 1.05, rotate: -2 }}
                 whileTap={{ scale: 0.97 }}
-                className="
-                  flex h-11 w-11 items-center justify-center
-                  rounded-lg bg-blue-600
-                  shadow-lg shadow-blue-600/20
-                "
+                className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-600 shadow-lg shadow-blue-600/20"
               >
                 <Store size={23} strokeWidth={2.3} className="text-white" />
               </motion.div>
 
-              <span
-                className="
-                  text-[25px] font-bold tracking-[-0.025em]
-                  text-blue-700
-                "
-              >
+              <span className="text-[25px] font-bold tracking-[-0.025em] text-blue-700">
                 CompStore ERP
               </span>
             </Link>
           </motion.div>
 
           {/* LEFT CONTENT */}
-
-          <div
-            className="
-              relative z-10 flex flex-1 flex-col justify-between
-              px-9 pb-9 pt-20 xl:px-10 xl:pb-10
-            "
-          >
+          <div className="relative z-10 flex flex-1 flex-col justify-between px-9 pb-9 pt-20 xl:px-10 xl:pb-10">
             <motion.div
               variants={containerVariants}
               initial="hidden"
@@ -278,36 +247,27 @@ const Signup = () => {
             >
               <motion.h1
                 variants={itemVariants}
-                className="
-                  text-[40px] font-bold leading-[1.12]
-                  tracking-[-0.04em] text-slate-950 xl:text-[42px]
-                "
+                className="text-[40px] font-bold leading-[1.12] tracking-[-0.04em] text-slate-950 xl:text-[42px]"
               >
-                Join thousands of store owners.
+                {t("signup.brandHeadline")}
               </motion.h1>
 
               <motion.p
                 variants={itemVariants}
                 className="mt-5 max-w-[550px] text-[17px] leading-7 text-slate-700"
               >
-                Streamline your inventory, manage sales efficiently, and grow
-                your business with our comprehensive ERP solution.
+                {t("signup.brandDescription")}
               </motion.p>
             </motion.div>
 
             {/* TESTIMONIAL */}
-
             <motion.div
               initial={{ opacity: 0, y: 25 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.35 }}
-              className="
-                w-full max-w-[485px] rounded-xl
-                border border-slate-300/90 bg-white
-                p-7 shadow-sm xl:p-8
-              "
+              className="w-full max-w-[485px] rounded-xl border border-slate-300/90 bg-white p-7 shadow-sm xl:p-8"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3" dir="ltr">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <motion.div
                     key={star}
@@ -328,26 +288,19 @@ const Signup = () => {
               </div>
 
               <p className="mt-5 text-[15px] italic leading-6 text-slate-800">
-                "CompStore transformed how we handle our warehouse. The
-                interface is clean, and the data insights are invaluable."
+                {t("signup.testimonial")}
               </p>
 
               <div className="mt-6 flex items-center gap-3">
-                <div
-                  className="
-                    flex h-11 w-11 items-center justify-center
-                    overflow-hidden rounded-full bg-slate-200
-                  "
-                >
+                <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-slate-200">
                   <User size={21} className="text-slate-500" />
                 </div>
-
                 <div>
                   <p className="text-[14px] font-semibold tracking-wide text-slate-900">
-                    Sarah Jenkins
+                    {t("signup.testimonialName")}
                   </p>
                   <p className="text-[13px] tracking-wide text-slate-600">
-                    Operations Director
+                    {t("signup.testimonialRole")}
                   </p>
                 </div>
               </div>
@@ -356,76 +309,59 @@ const Signup = () => {
         </section>
 
         {/* RIGHT SIDE */}
-
-        <section
-          className="
-            relative flex min-h-screen flex-col
-            overflow-hidden bg-[#faf9ff]
-          "
-        >
+        <section className="relative flex min-h-screen flex-col overflow-hidden bg-[#faf9ff]">
           {/* LANGUAGE SELECTOR */}
-
           <div
-            className="
-              absolute right-5 top-5 z-30
-              sm:right-8 sm:top-7 lg:right-10 lg:top-8
-            "
+            className={`absolute top-5 z-30 sm:top-7 lg:top-8 ${
+              isRTL
+                ? "left-5 sm:left-8 lg:left-10"
+                : "right-5 sm:right-8 lg:right-10"
+            }`}
           >
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setLanguageOpen((prev) => !prev)}
-                className="
-                  group flex items-center gap-2 rounded-lg
-                  px-2 py-2 text-sm font-medium text-slate-700
-                  transition-all duration-200 hover:bg-white
-                  focus:outline-none focus:ring-2 focus:ring-blue-500/20
-                "
-                aria-expanded={languageOpen}
+                onClick={() => setShowLanguageMenu((prev) => !prev)}
+                className="group flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-slate-700 transition-all duration-200 hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                aria-expanded={showLanguageMenu}
               >
                 <Globe2 size={17} strokeWidth={2} className="text-slate-700" />
-
                 <span>
-                  {selectedLanguage.value === "en"
+                  {currentLanguage.value === "en"
                     ? "EN"
-                    : selectedLanguage.label}
+                    : currentLanguage.label}
                 </span>
-
                 <ChevronDown
                   size={14}
                   className={`transition-transform duration-200 ${
-                    languageOpen ? "rotate-180" : ""
+                    showLanguageMenu ? "rotate-180" : ""
                   }`}
                 />
               </button>
 
-              {languageOpen && (
+              {showLanguageMenu && (
                 <motion.div
                   initial={{ opacity: 0, y: -6, scale: 0.97 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ duration: 0.15 }}
-                  className="
-                    absolute right-0 mt-2 w-40 overflow-hidden
-                    rounded-xl border border-slate-200 bg-white
-                    p-1.5 shadow-xl shadow-slate-900/10
-                  "
+                  className={`absolute mt-2 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10 ${
+                    isRTL ? "left-0" : "right-0"
+                  }`}
                 >
-                  {languages.map((language) => (
+                  {languages.map((item) => (
                     <button
-                      key={language.value}
+                      key={item.value}
                       type="button"
-                      onClick={() => handleLanguageChange(language)}
-                      className={`
-                        flex w-full items-center rounded-lg
-                        px-3 py-2.5 text-left text-sm transition-colors
-                        ${
-                          selectedLanguage.value === language.value
-                            ? "bg-blue-50 font-semibold text-blue-600"
-                            : "text-slate-700 hover:bg-slate-50"
-                        }
-                      `}
+                      onClick={() => handleLanguageChange(item.value)}
+                      className={`flex w-full items-center rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                        isRTL ? "text-right" : "text-left"
+                      } ${
+                        language === item.value
+                          ? "bg-blue-50 font-semibold text-blue-600"
+                          : "text-slate-700 hover:bg-slate-50"
+                      }`}
                     >
-                      {language.label}
+                      {item.label}
                     </button>
                   ))}
                 </motion.div>
@@ -433,15 +369,8 @@ const Signup = () => {
             </div>
           </div>
 
-          {/* FORM + GOOGLE BUTTON: ONE VERTICAL LAYOUT */}
-
-          <div
-            className="
-              flex flex-1 items-center justify-center
-              px-5 py-24 sm:px-8
-              lg:px-12 lg:py-16
-            "
-          >
+          {/* FORM */}
+          <div className="flex flex-1 items-center justify-center px-5 py-24 sm:px-8 lg:px-12 lg:py-16">
             <motion.div
               variants={containerVariants}
               initial="hidden"
@@ -449,21 +378,16 @@ const Signup = () => {
               className="w-full max-w-[500px]"
             >
               {/* HEADING */}
-
               <motion.div variants={itemVariants}>
-                <h2
-                  className="
-                    text-[32px] font-bold leading-tight
-                    tracking-[-0.035em] text-slate-950
-                    sm:text-[34px]
-                  "
-                >
-                  Create your account
+                <h2 className="text-[32px] font-bold leading-tight tracking-[-0.035em] text-slate-950 sm:text-[34px]">
+                  {t("signup.title")}
                 </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {t("signup.description")}
+                </p>
               </motion.div>
 
               {/* SIGNUP FORM */}
-
               <motion.form
                 variants={itemVariants}
                 onSubmit={handleSubmit(onSubmit)}
@@ -471,41 +395,31 @@ const Signup = () => {
                 className="mt-7"
               >
                 {/* FULL NAME */}
-
                 <div>
                   <label
                     htmlFor="fullName"
-                    className="
-                      mb-2 block text-[13px]
-                      font-semibold tracking-[0.02em] text-slate-800
-                    "
+                    className="mb-2 block text-[13px] font-semibold tracking-[0.02em] text-slate-800"
                   >
-                    Full Name
+                    {t("signup.fullName")}
                   </label>
 
                   <input
                     id="fullName"
                     type="text"
                     autoComplete="name"
-                    placeholder="AMO Technology"
+                    placeholder={t("signup.fullNamePlaceholder")}
                     {...register("fullName", {
-                      required: "Full name is required",
+                      required: t("signup.nameRequired"),
                       minLength: {
                         value: 2,
-                        message: "Name must be at least 2 characters",
+                        message: t("signup.nameMinLength"),
                       },
                     })}
-                    className={`
-                      h-[50px] w-full rounded-md border
-                      bg-white px-4 text-[15px] text-slate-900
-                      outline-none placeholder:text-slate-400
-                      transition-all duration-200 focus:ring-4
-                      ${
-                        errors.fullName
-                          ? "border-red-400 focus:border-red-500 focus:ring-red-500/10"
-                          : "border-slate-300 focus:border-blue-600 focus:ring-blue-600/10"
-                      }
-                    `}
+                    className={`h-[50px] w-full rounded-md border bg-white px-4 text-[15px] text-slate-900 outline-none placeholder:text-slate-400 transition-all focus:ring-4 ${
+                      errors.fullName
+                        ? "border-red-400 focus:border-red-500 focus:ring-red-500/10"
+                        : "border-slate-300 focus:border-blue-600 focus:ring-blue-600/10"
+                    }`}
                   />
 
                   {errors.fullName && (
@@ -520,41 +434,32 @@ const Signup = () => {
                 </div>
 
                 {/* EMAIL */}
-
                 <div className="mt-4">
                   <label
                     htmlFor="email"
-                    className="
-                      mb-2 block text-[13px]
-                      font-semibold tracking-[0.02em] text-slate-800
-                    "
+                    className="mb-2 block text-[13px] font-semibold tracking-[0.02em] text-slate-800"
                   >
-                    Email Address
+                    {t("signup.email")}
                   </label>
 
                   <input
                     id="email"
                     type="email"
                     autoComplete="email"
+                    dir="ltr"
                     placeholder="john@example.com"
                     {...register("email", {
-                      required: "Email address is required",
+                      required: t("signup.emailRequired"),
                       pattern: {
                         value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                        message: "Please enter a valid email address",
+                        message: t("signup.emailInvalid"),
                       },
                     })}
-                    className={`
-                      h-[50px] w-full rounded-md border
-                      bg-white px-4 text-[15px] text-slate-900
-                      outline-none placeholder:text-slate-400
-                      transition-all duration-200 focus:ring-4
-                      ${
-                        errors.email
-                          ? "border-red-400 focus:border-red-500 focus:ring-red-500/10"
-                          : "border-slate-300 focus:border-blue-600 focus:ring-blue-600/10"
-                      }
-                    `}
+                    className={`h-[50px] w-full rounded-md border bg-white px-4 text-[15px] text-slate-900 outline-none placeholder:text-slate-400 transition-all focus:ring-4 ${
+                      errors.email
+                        ? "border-red-400 focus:border-red-500 focus:ring-red-500/10"
+                        : "border-slate-300 focus:border-blue-600 focus:ring-blue-600/10"
+                    }`}
                   />
 
                   {errors.email && (
@@ -569,16 +474,12 @@ const Signup = () => {
                 </div>
 
                 {/* PASSWORD */}
-
                 <div className="mt-4">
                   <label
                     htmlFor="password"
-                    className="
-                      mb-2 block text-[13px]
-                      font-semibold tracking-[0.02em] text-slate-800
-                    "
+                    className="mb-2 block text-[13px] font-semibold tracking-[0.02em] text-slate-800"
                   >
-                    Password
+                    {t("signup.password")}
                   </label>
 
                   <div className="relative">
@@ -586,40 +487,30 @@ const Signup = () => {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       autoComplete="new-password"
+                      dir="ltr"
                       placeholder="••••••••"
                       {...register("password", {
-                        required: "Password is required",
+                        required: t("signup.passwordRequired"),
                         minLength: {
                           value: 8,
-                          message: "Password must be at least 8 characters",
+                          message: t("signup.passwordMinLength"),
                         },
                       })}
-                      className={`
-                        h-[50px] w-full rounded-md border
-                        bg-white pl-4 pr-12 text-[15px]
-                        tracking-wider text-slate-900
-                        outline-none placeholder:text-slate-400
-                        transition-all duration-200 focus:ring-4
-                        ${
-                          errors.password
-                            ? "border-red-400 focus:border-red-500 focus:ring-red-500/10"
-                            : "border-slate-300 focus:border-blue-600 focus:ring-blue-600/10"
-                        }
-                      `}
+                      className={`h-[50px] w-full rounded-md border bg-white pl-4 pr-12 text-[15px] tracking-wider text-slate-900 outline-none placeholder:text-slate-400 transition-all focus:ring-4 ${
+                        errors.password
+                          ? "border-red-400 focus:border-red-500 focus:ring-red-500/10"
+                          : "border-slate-300 focus:border-blue-600 focus:ring-blue-600/10"
+                      }`}
                     />
 
                     <button
                       type="button"
                       onClick={() => setShowPassword((prev) => !prev)}
-                      className="
-                        absolute right-3.5 top-1/2
-                        -translate-y-1/2 rounded-md p-1.5
-                        text-slate-400 transition-colors
-                        hover:bg-slate-50 hover:text-slate-600
-                        focus:outline-none
-                      "
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-600 focus:outline-none"
                       aria-label={
-                        showPassword ? "Hide password" : "Show password"
+                        showPassword
+                          ? t("signup.hidePassword")
+                          : t("signup.showPassword")
                       }
                     >
                       {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
@@ -638,16 +529,12 @@ const Signup = () => {
                 </div>
 
                 {/* CONFIRM PASSWORD */}
-
                 <div className="mt-4">
                   <label
                     htmlFor="confirmPassword"
-                    className="
-                      mb-2 block text-[13px]
-                      font-semibold tracking-[0.02em] text-slate-800
-                    "
+                    className="mb-2 block text-[13px] font-semibold tracking-[0.02em] text-slate-800"
                   >
-                    Confirm Password
+                    {t("signup.confirmPassword")}
                   </label>
 
                   <div className="relative">
@@ -655,38 +542,28 @@ const Signup = () => {
                       id="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
                       autoComplete="new-password"
+                      dir="ltr"
                       placeholder="••••••••"
                       {...register("confirmPassword", {
-                        required: "Please confirm your password",
+                        required: t("signup.confirmPasswordRequired"),
                         validate: (value) =>
-                          value === password || "Passwords do not match",
+                          value === password || t("signup.passwordMismatch"),
                       })}
-                      className={`
-                        h-[50px] w-full rounded-md border
-                        bg-white pl-4 pr-12 text-[15px]
-                        tracking-wider text-slate-900
-                        outline-none placeholder:text-slate-400
-                        transition-all duration-200 focus:ring-4
-                        ${
-                          errors.confirmPassword
-                            ? "border-red-400 focus:border-red-500 focus:ring-red-500/10"
-                            : "border-slate-300 focus:border-blue-600 focus:ring-blue-600/10"
-                        }
-                      `}
+                      className={`h-[50px] w-full rounded-md border bg-white pl-4 pr-12 text-[15px] tracking-wider text-slate-900 outline-none placeholder:text-slate-400 transition-all focus:ring-4 ${
+                        errors.confirmPassword
+                          ? "border-red-400 focus:border-red-500 focus:ring-red-500/10"
+                          : "border-slate-300 focus:border-blue-600 focus:ring-blue-600/10"
+                      }`}
                     />
 
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword((prev) => !prev)}
-                      className="
-                        absolute right-3.5 top-1/2
-                        -translate-y-1/2 rounded-md p-1.5
-                        text-slate-400 transition-colors
-                        hover:bg-slate-50 hover:text-slate-600
-                        focus:outline-none
-                      "
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-600 focus:outline-none"
                       aria-label={
-                        showConfirmPassword ? "Hide password" : "Show password"
+                        showConfirmPassword
+                          ? t("signup.hidePassword")
+                          : t("signup.showPassword")
                       }
                     >
                       {showConfirmPassword ? (
@@ -708,38 +585,22 @@ const Signup = () => {
                   )}
                 </div>
 
-                {/* CREATE ACCOUNT BUTTON */}
-
+                {/* CREATE ACCOUNT */}
                 <motion.button
                   type="submit"
                   disabled={isLoading}
                   whileHover={!isLoading ? { y: -1 } : {}}
                   whileTap={!isLoading ? { scale: 0.99 } : {}}
-                  className="
-                    mt-6 flex h-[50px] w-full
-                    items-center justify-center gap-2
-                    rounded-md bg-blue-700 px-5
-                    text-[15px] font-semibold text-white
-                    shadow-sm shadow-blue-700/20
-                    transition-all duration-200
-                    hover:bg-blue-800 hover:shadow-md
-                    hover:shadow-blue-700/20
-                    disabled:cursor-not-allowed disabled:opacity-70
-                  "
+                  className="mt-6 flex h-[50px] w-full items-center justify-center gap-2 rounded-md bg-blue-700 px-5 text-[15px] font-semibold text-white shadow-sm shadow-blue-700/20 transition-all hover:bg-blue-800 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isLoading ? (
                     <>
-                      <span
-                        className="
-                          h-5 w-5 animate-spin rounded-full
-                          border-2 border-white/30 border-t-white
-                        "
-                      />
-                      <span>Creating account...</span>
+                      <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      <span>{t("signup.submitting")}</span>
                     </>
                   ) : (
                     <>
-                      <span>Create Account</span>
+                      <span>{t("signup.submit")}</span>
                       <ArrowRight size={18} strokeWidth={2} />
                     </>
                   )}
@@ -747,54 +608,28 @@ const Signup = () => {
               </motion.form>
 
               {/* DIVIDER */}
-
               <motion.div
                 variants={itemVariants}
                 className="my-6 flex items-center gap-4"
               >
                 <div className="h-px flex-1 bg-slate-300" />
-
                 <span className="shrink-0 text-[13px] font-medium text-slate-600">
-                  OR
+                  {t("signup.divider")}
                 </span>
-
                 <div className="h-px flex-1 bg-slate-300" />
               </motion.div>
 
               {/* GOOGLE BUTTON */}
-
               <motion.div
                 variants={itemVariants}
-                className="
-                  relative h-[50px] w-full
-                  overflow-hidden rounded-md
-                "
+                className="relative h-[50px] w-full overflow-hidden rounded-md"
               >
-                {/* CUSTOM VISUAL */}
-
-                <div
-                  className="
-                    pointer-events-none absolute inset-0 z-0
-                    flex items-center justify-center gap-3
-                    rounded-md border border-slate-300
-                    bg-white text-[15px] font-medium text-slate-800
-                  "
-                >
-                  <span
-                    className="
-                      bg-gradient-to-r from-blue-600
-                      via-red-500 to-yellow-500
-                      bg-clip-text text-[21px]
-                      font-bold leading-none text-transparent
-                    "
-                  >
+                <div className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center gap-3 rounded-md border border-slate-300 bg-white text-[15px] font-medium text-slate-800">
+                  <span className="bg-gradient-to-r from-blue-600 via-red-500 to-yellow-500 bg-clip-text text-[21px] font-bold leading-none text-transparent">
                     G
                   </span>
-
-                  <span>Continue with Google</span>
+                  <span>{t("signup.google")}</span>
                 </div>
-
-                {/* REAL GOOGLE BUTTON */}
 
                 <div className="relative z-10 h-full w-full opacity-0">
                   <GoogleLogin
@@ -810,20 +645,16 @@ const Signup = () => {
               </motion.div>
 
               {/* LOGIN LINK */}
-
               <motion.p
                 variants={itemVariants}
                 className="mt-6 text-center text-[14px] text-slate-600"
               >
-                Already have an account?{" "}
+                {t("signup.haveAccount")}{" "}
                 <Link
                   to="/login"
-                  className="
-                    font-semibold text-blue-600
-                    transition-colors hover:text-blue-700
-                  "
+                  className="font-semibold text-blue-600 transition-colors hover:text-blue-700"
                 >
-                  Log In
+                  {t("signup.loginLink")}
                 </Link>
               </motion.p>
             </motion.div>

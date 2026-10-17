@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
+import { useLanguage } from "../../context/LanguageContext";
 
 import {
   Search,
@@ -24,18 +25,26 @@ import {
   FileText,
 } from "lucide-react";
 
-const formatMoney = (amount) => {
-  return `${Number(amount).toLocaleString()} AFN`;
-};
+const formatMoney = (amount) => `${Number(amount).toLocaleString()} AFN`;
 
-const formatDate = (date) => {
+const formatDate = (date, language = "en") => {
   if (!date) return "—";
 
-  return new Date(`${date}T00:00:00`).toLocaleDateString("en-US", {
+  const dateObject = new Date(`${date}T00:00:00`);
+
+  if (Number.isNaN(dateObject.getTime())) return "—";
+
+  const locales = {
+    en: "en-US",
+    ps: "ps-AF",
+    fa: "fa-AF",
+  };
+
+  return new Intl.DateTimeFormat(locales[language] || "en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
-  });
+  }).format(dateObject);
 };
 
 const paymentStatusStyles = {
@@ -51,12 +60,37 @@ const paymentStatusIcon = (status) => {
 };
 
 const Expenses = () => {
+  const { t, language } = useLanguage();
+
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [deleting, setDeleting] = useState(false);
 
-  const fetchExpenses = async () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [selectedDate, setSelectedDate] = useState("");
+
+  const [selectedExpense, setSelectedExpense] = useState(null);
+  const [expenseToDelete, setExpenseToDelete] = useState(null);
+
+  const translate = (key) => t(`expenses.${key}`);
+
+  // Keep API/database values unchanged while translating their display labels.
+  const translateCategory = (category) => {
+    const key = `expenses.categories.${category}`;
+    const translated = t(key);
+    return translated === key ? category : translated;
+  };
+
+  const translateStatus = (status) => {
+    const key = `expenses.statuses.${status}`;
+    const translated = t(key);
+    return translated === key ? status : translated;
+  };
+
+  const fetchExpenses = useCallback(async () => {
     try {
       setLoading(true);
       setLoadError("");
@@ -75,22 +109,18 @@ const Expenses = () => {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(data.message || "The request failed");
+        throw new Error(data.message || translate("requestFailed"));
       }
 
-      // Supports an API response containing either { expenses: [...] }
-      // or a direct array of expenses.
       const records = Array.isArray(data) ? data : data.expenses;
 
       if (!Array.isArray(records)) {
-        throw new Error("The server returned an unexpected expenses response");
+        throw new Error(translate("unexpectedResponse"));
       }
 
       const formattedExpenses = records.map((expense) => ({
         ...expense,
-        // Keep the numeric database ID for deletion.
         id: expense.id,
-        // Keep the readable expense number for display.
         expenseNumber: expense.expense_number ?? expense.expenseNumber ?? "",
         amount: Number(expense.amount),
         expenseDate: String(
@@ -105,25 +135,15 @@ const Expenses = () => {
       setExpenses(formattedExpenses);
     } catch (error) {
       console.error("Fetch expenses error:", error);
-      setLoadError(error.message || "Could not load expenses");
+      setLoadError(error.message || translate("loadError"));
     } finally {
       setLoading(false);
     }
-  };
+  }, [language, t]);
 
   useEffect(() => {
     fetchExpenses();
-  }, []);
-
-  const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("All");
-  const [statusFilter, setStatusFilter] = useState("All");
-
-  // New date filter
-  const [selectedDate, setSelectedDate] = useState("");
-
-  const [selectedExpense, setSelectedExpense] = useState(null);
-  const [expenseToDelete, setExpenseToDelete] = useState(null);
+  }, [fetchExpenses]);
 
   const filteredExpenses = useMemo(() => {
     return expenses.filter((expense) => {
@@ -152,7 +172,6 @@ const Expenses = () => {
     });
   }, [expenses, searchTerm, categoryFilter, statusFilter, selectedDate]);
 
-  // Summary values now use filtered expenses
   const totalExpenses = filteredExpenses.reduce(
     (total, expense) => total + expense.amount,
     0,
@@ -167,6 +186,7 @@ const Expenses = () => {
     .reduce((total, expense) => total + expense.amount, 0);
 
   const now = new Date();
+
   const currentMonth = `${now.getFullYear()}-${String(
     now.getMonth() + 1,
   ).padStart(2, "0")}`;
@@ -202,7 +222,7 @@ const Expenses = () => {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(data.message || "The request failed");
+        throw new Error(data.message || translate("requestFailed"));
       }
 
       setExpenses((currentExpenses) =>
@@ -214,10 +234,10 @@ const Expenses = () => {
       );
 
       setExpenseToDelete(null);
-      toast.success(data.message || "Expense deleted successfully");
+      toast.success(data.message || translate("deleteSuccess"));
     } catch (error) {
       console.error("Delete expense error:", error);
-      toast.error(error.message || "Something went wrong");
+      toast.error(error.message || translate("unknownError"));
     } finally {
       setDeleting(false);
     }
@@ -234,17 +254,17 @@ const Expenses = () => {
         <div>
           <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
             <Wallet size={16} />
-            <span>Financial Management</span>
+            <span>{translate("financialManagement")}</span>
             <span>/</span>
-            <span className="text-slate-700">Expenses</span>
+            <span className="text-slate-700">{translate("title")}</span>
           </div>
 
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Expenses
+            {translate("title")}
           </h1>
 
           <p className="mt-1 text-sm text-slate-500 sm:text-base">
-            Track shop expenses, payments and business costs.
+            {translate("subtitle")}
           </p>
         </div>
 
@@ -253,19 +273,19 @@ const Expenses = () => {
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
         >
           <Plus size={18} />
-          Add Expense
+          {translate("addExpense")}
         </Link>
       </motion.div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
-          title="Total Expenses"
+          title={translate("totalExpenses")}
           value={formatMoney(totalExpenses)}
           description={
             selectedDate
-              ? `Expenses on ${formatDate(selectedDate)}`
-              : "All matching expenses"
+              ? `${translate("expensesOn")} ${formatDate(selectedDate, language)}`
+              : translate("allMatchingExpenses")
           }
           icon={<ReceiptText size={21} />}
           iconBackground="bg-blue-100"
@@ -273,27 +293,27 @@ const Expenses = () => {
         />
 
         <SummaryCard
-          title="Paid Expenses"
+          title={translate("paidExpenses")}
           value={formatMoney(paidExpenses)}
-          description="Expenses already paid"
+          description={translate("expensesAlreadyPaid")}
           icon={<CheckCircle2 size={21} />}
           iconBackground="bg-emerald-100"
           iconColor="text-emerald-600"
         />
 
         <SummaryCard
-          title="Pending Expenses"
+          title={translate("pendingExpenses")}
           value={formatMoney(pendingExpenses)}
-          description="Expenses waiting for payment"
+          description={translate("waitingForPayment")}
           icon={<Clock3 size={21} />}
           iconBackground="bg-amber-100"
           iconColor="text-amber-600"
         />
 
         <SummaryCard
-          title="Expense Records"
+          title={translate("expenseRecords")}
           value={currentMonthExpenses}
-          description="Records in the current month"
+          description={translate("currentMonthRecords")}
           icon={<TrendingDown size={21} />}
           iconBackground="bg-violet-100"
           iconColor="text-violet-600"
@@ -320,7 +340,7 @@ const Expenses = () => {
                 type="text"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search expense or reference..."
+                placeholder={translate("searchPlaceholder")}
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
               />
             </div>
@@ -338,14 +358,20 @@ const Expenses = () => {
                   onChange={(event) => setCategoryFilter(event.target.value)}
                   className="w-full appearance-none rounded-xl border border-slate-200 bg-white py-3 pl-9 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 sm:w-48"
                 >
-                  <option value="All">All Categories</option>
-                  <option value="Rent">Rent</option>
-                  <option value="Utilities">Utilities</option>
-                  <option value="Salary">Salary</option>
-                  <option value="Transportation">Transportation</option>
-                  <option value="Supplies">Supplies</option>
-                  <option value="Maintenance">Maintenance</option>
-                  <option value="Other">Other</option>
+                  <option value="All">{translate("allCategories")}</option>
+                  {[
+                    "Rent",
+                    "Utilities",
+                    "Salary",
+                    "Transportation",
+                    "Supplies",
+                    "Maintenance",
+                    "Other",
+                  ].map((category) => (
+                    <option key={category} value={category}>
+                      {translateCategory(category)}
+                    </option>
+                  ))}
                 </select>
 
                 <ChevronDown
@@ -365,10 +391,12 @@ const Expenses = () => {
                   onChange={(event) => setStatusFilter(event.target.value)}
                   className="w-full appearance-none rounded-xl border border-slate-200 bg-white py-3 pl-9 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 sm:w-44"
                 >
-                  <option value="All">All Statuses</option>
-                  <option value="Paid">Paid</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Cancelled">Cancelled</option>
+                  <option value="All">{translate("allStatuses")}</option>
+                  {["Paid", "Pending", "Cancelled"].map((status) => (
+                    <option key={status} value={status}>
+                      {translateStatus(status)}
+                    </option>
+                  ))}
                 </select>
 
                 <ChevronDown
@@ -387,7 +415,7 @@ const Expenses = () => {
                 className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700"
               >
                 <CalendarDays size={16} className="text-slate-500" />
-                Filter by Date
+                {translate("filterByDate")}
               </label>
 
               <input
@@ -405,7 +433,7 @@ const Expenses = () => {
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
             >
               <X size={16} />
-              Clear Filters
+              {translate("clearFilters")}
             </button>
           </div>
         </div>
@@ -413,7 +441,7 @@ const Expenses = () => {
 
       {loading && (
         <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-          Loading expenses...
+          {translate("loading")}
         </div>
       )}
 
@@ -425,7 +453,7 @@ const Expenses = () => {
             onClick={fetchExpenses}
             className="mt-3 rounded-lg bg-rose-600 px-4 py-2 font-semibold text-white hover:bg-rose-700"
           >
-            Try Again
+            {translate("tryAgain")}
           </button>
         </div>
       )}
@@ -442,17 +470,17 @@ const Expenses = () => {
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
               <div>
                 <h2 className="font-semibold text-slate-900">
-                  Expense Records
+                  {translate("expenseRecords")}
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  {filteredExpenses.length} expense
-                  {filteredExpenses.length !== 1 ? "s" : ""} found
+                  {filteredExpenses.length} {translate("expenseCount")}
                 </p>
               </div>
 
               <div className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-medium text-slate-600">
-                Showing {filteredExpenses.length} of {expenses.length}
+                {translate("showing")} {filteredExpenses.length}{" "}
+                {translate("of")} {expenses.length}
               </div>
             </div>
 
@@ -460,14 +488,26 @@ const Expenses = () => {
               <table className="w-full min-w-[1050px] text-left">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-5 py-4 font-semibold">Expense</th>
-                    <th className="px-5 py-4 font-semibold">Category</th>
-                    <th className="px-5 py-4 font-semibold">Date</th>
-                    <th className="px-5 py-4 font-semibold">Payment Method</th>
-                    <th className="px-5 py-4 font-semibold">Amount</th>
-                    <th className="px-5 py-4 font-semibold">Status</th>
+                    <th className="px-5 py-4 font-semibold">
+                      {translate("expense")}
+                    </th>
+                    <th className="px-5 py-4 font-semibold">
+                      {translate("category")}
+                    </th>
+                    <th className="px-5 py-4 font-semibold">
+                      {translate("date")}
+                    </th>
+                    <th className="px-5 py-4 font-semibold">
+                      {translate("paymentMethod")}
+                    </th>
+                    <th className="px-5 py-4 font-semibold">
+                      {translate("amount")}
+                    </th>
+                    <th className="px-5 py-4 font-semibold">
+                      {translate("status")}
+                    </th>
                     <th className="px-5 py-4 text-right font-semibold">
-                      Actions
+                      {translate("actions")}
                     </th>
                   </tr>
                 </thead>
@@ -494,12 +534,12 @@ const Expenses = () => {
 
                       <td className="px-5 py-4">
                         <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
-                          {expense.category}
+                          {translateCategory(expense.category)}
                         </span>
                       </td>
 
                       <td className="px-5 py-4 text-sm text-slate-600">
-                        {formatDate(expense.expenseDate)}
+                        {formatDate(expense.expenseDate, language)}
                       </td>
 
                       <td className="px-5 py-4 text-sm text-slate-600">
@@ -513,11 +553,12 @@ const Expenses = () => {
                       <td className="px-5 py-4">
                         <span
                           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            paymentStatusStyles[expense.status]
+                            paymentStatusStyles[expense.status] ||
+                            "bg-slate-100 text-slate-700"
                           }`}
                         >
                           {paymentStatusIcon(expense.status)}
-                          {expense.status}
+                          {translateStatus(expense.status)}
                         </span>
                       </td>
 
@@ -527,7 +568,8 @@ const Expenses = () => {
                             type="button"
                             onClick={() => setSelectedExpense(expense)}
                             className="rounded-lg border border-slate-200 p-2 text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
-                            title="View expense"
+                            title={translate("viewExpense")}
+                            aria-label={translate("viewExpense")}
                           >
                             <Eye size={17} />
                           </button>
@@ -536,7 +578,8 @@ const Expenses = () => {
                             type="button"
                             onClick={() => setExpenseToDelete(expense)}
                             className="rounded-lg border border-slate-200 p-2 text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-                            title="Delete expense"
+                            title={translate("deleteExpense")}
+                            aria-label={translate("deleteExpense")}
                           >
                             <Trash2 size={17} />
                           </button>
@@ -548,13 +591,13 @@ const Expenses = () => {
               </table>
             </div>
 
-            {filteredExpenses.length === 0 && <EmptyState />}
+            {filteredExpenses.length === 0 && <EmptyState t={t} />}
           </motion.div>
 
           {/* Mobile Cards */}
           <div className="space-y-4 lg:hidden">
             {filteredExpenses.length === 0 ? (
-              <EmptyState />
+              <EmptyState t={t} />
             ) : (
               filteredExpenses.map((expense, index) => (
                 <motion.div
@@ -578,25 +621,30 @@ const Expenses = () => {
 
                     <span
                       className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        paymentStatusStyles[expense.status]
+                        paymentStatusStyles[expense.status] ||
+                        "bg-slate-100 text-slate-700"
                       }`}
                     >
                       {paymentStatusIcon(expense.status)}
-                      {expense.status}
+                      {translateStatus(expense.status)}
                     </span>
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-xs text-slate-500">Category</p>
+                      <p className="text-xs text-slate-500">
+                        {translate("category")}
+                      </p>
 
                       <p className="mt-1 text-sm font-semibold text-slate-700">
-                        {expense.category}
+                        {translateCategory(expense.category)}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-xs text-slate-500">Amount</p>
+                      <p className="text-xs text-slate-500">
+                        {translate("amount")}
+                      </p>
 
                       <p className="mt-1 text-sm font-bold text-slate-900">
                         {formatMoney(expense.amount)}
@@ -604,16 +652,20 @@ const Expenses = () => {
                     </div>
 
                     <div>
-                      <p className="text-xs text-slate-500">Date</p>
+                      <p className="text-xs text-slate-500">
+                        {translate("date")}
+                      </p>
 
                       <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-slate-700">
                         <CalendarDays size={14} className="text-slate-400" />
-                        {formatDate(expense.expenseDate)}
+                        {formatDate(expense.expenseDate, language)}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-xs text-slate-500">Payment Method</p>
+                      <p className="text-xs text-slate-500">
+                        {translate("paymentMethod")}
+                      </p>
 
                       <p className="mt-1 text-sm font-semibold text-slate-700">
                         {expense.paymentMethod}
@@ -628,14 +680,15 @@ const Expenses = () => {
                       className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                     >
                       <Eye size={16} />
-                      View Details
+                      {translate("viewDetails")}
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setExpenseToDelete(expense)}
                       className="inline-flex items-center justify-center rounded-xl border border-rose-200 px-3 py-2.5 text-rose-600 transition hover:bg-rose-50"
-                      title="Delete expense"
+                      title={translate("deleteExpense")}
+                      aria-label={translate("deleteExpense")}
                     >
                       <Trash2 size={16} />
                     </button>
@@ -660,7 +713,7 @@ const Expenses = () => {
               <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
-                    Expense Details
+                    {translate("expenseDetails")}
                   </p>
 
                   <h2 className="mt-1 text-xl font-bold text-slate-900">
@@ -677,6 +730,7 @@ const Expenses = () => {
                   type="button"
                   onClick={() => setSelectedExpense(null)}
                   className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                  aria-label={translate("close")}
                 >
                   <X size={20} />
                 </button>
@@ -686,44 +740,44 @@ const Expenses = () => {
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <DetailItem
                     icon={<ReceiptText size={16} />}
-                    label="Reference"
-                    value={selectedExpense.reference}
+                    label={translate("reference")}
+                    value={selectedExpense.reference || "—"}
                   />
 
                   <DetailItem
                     icon={<Building2 size={16} />}
-                    label="Category"
-                    value={selectedExpense.category}
+                    label={translate("category")}
+                    value={translateCategory(selectedExpense.category)}
                   />
 
                   <DetailItem
                     icon={<CalendarDays size={16} />}
-                    label="Expense Date"
-                    value={formatDate(selectedExpense.expenseDate)}
+                    label={translate("expenseDate")}
+                    value={formatDate(selectedExpense.expenseDate, language)}
                   />
 
                   <DetailItem
                     icon={<Wallet size={16} />}
-                    label="Payment Method"
-                    value={selectedExpense.paymentMethod}
+                    label={translate("paymentMethod")}
+                    value={selectedExpense.paymentMethod || "—"}
                   />
 
                   <DetailItem
                     icon={<UserRound size={16} />}
-                    label="Paid By"
-                    value={selectedExpense.paidBy}
+                    label={translate("paidBy")}
+                    value={selectedExpense.paidBy || "—"}
                   />
 
                   <DetailItem
                     icon={<CircleDollarSign size={16} />}
-                    label="Status"
-                    value={selectedExpense.status}
+                    label={translate("status")}
+                    value={translateStatus(selectedExpense.status)}
                   />
                 </div>
 
                 <div className="rounded-xl bg-blue-50 p-4">
                   <p className="text-sm font-medium text-blue-700">
-                    Expense Amount
+                    {translate("expenseAmount")}
                   </p>
 
                   <p className="mt-1 text-2xl font-bold text-blue-900">
@@ -736,12 +790,12 @@ const Expenses = () => {
                     <FileText size={17} className="text-slate-500" />
 
                     <h3 className="font-semibold text-slate-900">
-                      Description
+                      {translate("description")}
                     </h3>
                   </div>
 
                   <p className="rounded-xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-                    {selectedExpense.description || "No description available."}
+                    {selectedExpense.description || translate("noDescription")}
                   </p>
                 </div>
               </div>
@@ -752,7 +806,7 @@ const Expenses = () => {
                   onClick={() => setSelectedExpense(null)}
                   className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
                 >
-                  Close
+                  {translate("close")}
                 </button>
               </div>
             </motion.div>
@@ -763,7 +817,7 @@ const Expenses = () => {
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {expenseToDelete && (
-          <ModalOverlay onClose={() => setExpenseToDelete(null)}>
+          <ModalOverlay onClose={() => !deleting && setExpenseToDelete(null)}>
             <motion.div
               initial={{ opacity: 0, scale: 0.96, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -775,24 +829,25 @@ const Expenses = () => {
               </div>
 
               <h2 className="mt-4 text-xl font-bold text-slate-900">
-                Delete Expense?
+                {translate("deleteConfirmationTitle")}
               </h2>
 
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                Are you sure you want to delete{" "}
+                {translate("deleteConfirmation")}{" "}
                 <span className="font-semibold text-slate-700">
                   {expenseToDelete.title}
                 </span>
-                ? This action cannot be undone.
+                ? {translate("cannotUndo")}
               </p>
 
               <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={() => setExpenseToDelete(null)}
-                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  disabled={deleting}
+                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
                 >
-                  Cancel
+                  {translate("cancel")}
                 </button>
 
                 <button
@@ -801,7 +856,9 @@ const Expenses = () => {
                   disabled={deleting}
                   className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {deleting ? "Deleting..." : "Delete Expense"}
+                  {deleting
+                    ? translate("deleting")
+                    : translate("deleteExpense")}
                 </button>
               </div>
             </motion.div>
@@ -854,22 +911,26 @@ const DetailItem = ({ icon, label, value }) => {
         {label}
       </div>
 
-      <p className="mt-1 text-sm font-semibold text-slate-800">{value}</p>
+      <p className="mt-1 break-words text-sm font-semibold text-slate-800">
+        {value}
+      </p>
     </div>
   );
 };
 
-const EmptyState = () => {
+const EmptyState = ({ t }) => {
   return (
     <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center shadow-sm">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
         <Wallet size={25} />
       </div>
 
-      <h3 className="mt-4 font-semibold text-slate-900">No expenses found</h3>
+      <h3 className="mt-4 font-semibold text-slate-900">
+        {t("expenses.noExpenses")}
+      </h3>
 
       <p className="mt-1 text-sm text-slate-500">
-        Try changing your search or filter options.
+        {t("expenses.changeFilters")}
       </p>
     </div>
   );
@@ -882,14 +943,11 @@ const ModalOverlay = ({ children, onClose }) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
-      onMouseDown={onClose}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
     >
-      <div
-        className="flex w-full justify-center"
-        onMouseDown={(event) => event.stopPropagation()}
-      >
-        {children}
-      </div>
+      <div className="flex w-full justify-center">{children}</div>
     </motion.div>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 import {
   ArrowRight,
@@ -17,47 +17,52 @@ import {
   WalletCards,
 } from "lucide-react";
 
-// Replace these two imports with your actual images later
 import dashboardPreview from "../assets/dashboard-preview.png";
 import storeOwner from "../assets/store-owner.png";
+
+import { useLanguage } from "../context/LanguageContext";
 
 const Landingpage = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
-  const [language, setLanguage] = useState("EN");
 
-  const languages = ["EN", "Dari", "Pashto"];
+  const { language, changeLanguage, t, isRTL } = useLanguage();
+
+  const languages = [
+    { code: "en", label: "English", shortLabel: "EN" },
+    { code: "fa", label: "دری", shortLabel: "دری" },
+    { code: "ps", label: "پښتو", shortLabel: "پښتو" },
+  ];
+
+  const selectedLanguage =
+    languages.find((item) => item.code === language) || languages[0];
 
   const features = [
     {
       icon: Boxes,
-      title: "Inventory Tracking",
-      description:
-        "Real-time stock management with low-stock alerts and serial number tracking for high-value items.",
+      title: t("landing.features.inventory.title"),
+      description: t("landing.features.inventory.description"),
       iconBg: "bg-indigo-100",
       iconColor: "text-indigo-700",
     },
     {
       icon: ShoppingCart,
-      title: "Sales & POS",
-      description:
-        "Process transactions quickly, manage returns, and generate professional invoices in seconds.",
+      title: t("landing.features.sales.title"),
+      description: t("landing.features.sales.description"),
       iconBg: "bg-emerald-100",
       iconColor: "text-emerald-700",
     },
     {
       icon: WalletCards,
-      title: "Expense Management",
-      description:
-        "Track operational costs, vendor payments, and staff salaries to understand your true margins.",
+      title: t("landing.features.expenses.title"),
+      description: t("landing.features.expenses.description"),
       iconBg: "bg-rose-100",
       iconColor: "text-rose-700",
     },
     {
       icon: FileBarChart,
-      title: "Advanced Reports",
-      description:
-        "Comprehensive profit & loss statements, sales trends, and tax-ready financial exports.",
+      title: t("landing.features.reports.title"),
+      description: t("landing.features.reports.description"),
       iconBg: "bg-slate-100",
       iconColor: "text-slate-700",
     },
@@ -66,53 +71,53 @@ const Landingpage = () => {
   const benefits = [
     {
       icon: Eye,
-      title: "Total Visibility",
-      description:
-        "Know exactly what's in your warehouse and what's on the shelf at any given moment.",
+      title: t("landing.benefits.visibility.title"),
+      description: t("landing.benefits.visibility.description"),
     },
     {
       icon: TrendingUp,
-      title: "Profit Tracking",
-      description:
-        "Automated margin calculations ensure you're pricing competitively while maintaining profitability.",
+      title: t("landing.benefits.profit.title"),
+      description: t("landing.benefits.profit.description"),
     },
     {
       icon: Zap,
-      title: "Reduced Manual Work",
-      description:
-        "Stop fighting with spreadsheets. Automate routine data entry and focus on growing your business.",
+      title: t("landing.benefits.automation.title"),
+      description: t("landing.benefits.automation.description"),
     },
   ];
 
-  // Smooth scroll
   const scrollToSection = (id) => {
-    const section = document.getElementById(id);
-
-    if (section) {
-      section.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }
+    document.getElementById(id)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
 
     setMobileMenuOpen(false);
   };
 
+  const handleLanguageChange = (code) => {
+    changeLanguage(code);
+    setLanguageOpen(false);
+  };
+
+  const navItems = [
+    { label: t("landing.nav.features"), id: "features" },
+    { label: t("landing.nav.howItWorks"), id: "how-it-works" },
+    { label: t("landing.nav.pricing"), id: "pricing" },
+  ];
+
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#faf9ff] text-slate-950">
-      {/* =========================================================
-          NAVBAR
-      ========================================================== */}
-
+    <div
+      className="min-h-screen overflow-x-hidden bg-[#faf9ff] text-slate-950"
+      dir={isRTL ? "rtl" : "ltr"}
+    >
+      {/* NAVBAR */}
       <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 backdrop-blur-md">
-        <div className="mx-auto flex h-[64px] max-w-[1400px] items-center justify-between px-5 sm:px-8 lg:px-10">
+        <div className="mx-auto flex h-[64px] max-w-[1400px] items-center justify-between gap-3 px-5 sm:px-8 lg:px-10">
           {/* Logo */}
-
-          <Link to="/" className="flex items-center gap-2.5">
+          <Link to="/" className="flex shrink-0 items-center gap-2.5">
             <motion.div
-              whileHover={{
-                scale: 1.05,
-              }}
+              whileHover={{ scale: 1.05 }}
               className="flex items-center justify-center"
             >
               <svg
@@ -129,7 +134,6 @@ const Landingpage = () => {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
-
                 <path
                   d="M3 9.5L5 4H19L21 9.5"
                   stroke="currentColor"
@@ -137,7 +141,6 @@ const Landingpage = () => {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
-
                 <path
                   d="M3 9.5C3 11.2 4.35 12.5 6 12.5C7.65 12.5 9 11.2 9 9.5C9 11.2 10.35 12.5 12 12.5C13.65 12.5 15 11.2 15 9.5C15 11.2 16.35 12.5 18 12.5C19.65 12.5 21 11.2 21 9.5"
                   stroke="currentColor"
@@ -148,51 +151,38 @@ const Landingpage = () => {
               </svg>
             </motion.div>
 
-            <span className="text-[19px] font-bold tracking-[-0.025em] text-blue-700 sm:text-[20px]">
+            <span className="text-[18px] font-bold tracking-[-0.025em] text-blue-700 sm:text-[20px]">
               CompStore ERP
             </span>
           </Link>
 
           {/* Desktop navigation */}
-
-          <nav className="hidden items-center gap-8 md:flex">
-            <button
-              onClick={() => scrollToSection("features")}
-              className="text-[14px] font-medium text-slate-700 transition-colors hover:text-blue-700"
-            >
-              Features
-            </button>
-
-            <button
-              onClick={() => scrollToSection("how-it-works")}
-              className="text-[14px] font-medium text-slate-700 transition-colors hover:text-blue-700"
-            >
-              How It Works
-            </button>
-
-            <button
-              onClick={() => scrollToSection("pricing")}
-              className="text-[14px] font-medium text-slate-700 transition-colors hover:text-blue-700"
-            >
-              Pricing
-            </button>
+          <nav className="hidden items-center gap-6 lg:flex xl:gap-8">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => scrollToSection(item.id)}
+                className="whitespace-nowrap text-[14px] font-medium text-slate-700 transition-colors hover:text-blue-700"
+              >
+                {item.label}
+              </button>
+            ))}
           </nav>
 
-          {/* Desktop right */}
-
+          {/* Desktop actions */}
           <div className="hidden items-center gap-3 md:flex">
-            {/* Language */}
-
+            {/* Language selector */}
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setLanguageOpen((prev) => !prev)}
-                className="flex items-center gap-1.5 text-[13px] font-medium text-slate-700 transition-colors hover:text-blue-700"
+                aria-label={t("common.language")}
+                aria-expanded={languageOpen}
+                onClick={() => setLanguageOpen((previous) => !previous)}
+                className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-[13px] font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-blue-700"
               >
-                <Globe2 size={15} />
-
-                <span>{language}</span>
-
+                <Globe2 size={16} />
+                <span>{selectedLanguage.shortLabel}</span>
                 <ChevronDown
                   size={14}
                   className={`transition-transform ${
@@ -201,255 +191,218 @@ const Landingpage = () => {
                 />
               </button>
 
-              {languageOpen && (
-                <motion.div
-                  initial={{
-                    opacity: 0,
-                    y: -5,
-                  }}
-                  animate={{
-                    opacity: 1,
-                    y: 0,
-                  }}
-                  className="absolute right-0 top-8 w-28 rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
-                >
-                  {languages.map((item) => (
-                    <button
-                      key={item}
-                      onClick={() => {
-                        setLanguage(item);
-                        setLanguageOpen(false);
-                      }}
-                      className={`block w-full rounded-md px-3 py-2 text-left text-[13px] transition-colors ${
-                        language === item
-                          ? "bg-blue-50 font-semibold text-blue-700"
-                          : "text-slate-700 hover:bg-slate-50"
-                      }`}
-                    >
-                      {item}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
+              <AnimatePresence>
+                {languageOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className={`absolute top-11 z-50 w-36 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg ${
+                      isRTL ? "left-0" : "right-0"
+                    }`}
+                  >
+                    {languages.map((item) => (
+                      <button
+                        key={item.code}
+                        type="button"
+                        onClick={() => handleLanguageChange(item.code)}
+                        className={`block w-full rounded-lg px-3 py-2.5 text-start text-[13px] transition-colors ${
+                          language === item.code
+                            ? "bg-blue-50 font-semibold text-blue-700"
+                            : "text-slate-700 hover:bg-slate-50"
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <span className="h-5 w-px bg-slate-300" />
 
             <Link
               to="/login"
-              className="rounded-md border border-slate-400 px-4 py-2 text-[13px] font-semibold text-slate-800 transition-all hover:border-blue-600 hover:text-blue-700"
+              className="whitespace-nowrap rounded-md border border-slate-400 px-4 py-2 text-[13px] font-semibold text-slate-800 transition-all hover:border-blue-600 hover:text-blue-700"
             >
-              Log In
+              {t("common.login")}
             </Link>
 
             <Link
               to="/signup"
-              className="rounded-md bg-blue-700 px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-blue-800 hover:shadow-md"
+              className="whitespace-nowrap rounded-md bg-blue-700 px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-blue-800 hover:shadow-md"
             >
-              Sign Up
+              {t("common.signup")}
             </Link>
           </div>
 
           {/* Mobile menu button */}
-
           <button
             type="button"
-            onClick={() => setMobileMenuOpen((prev) => !prev)}
-            className="rounded-lg p-2 text-slate-700 md:hidden"
+            aria-label={mobileMenuOpen ? t("common.close") : t("common.menu")}
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen((previous) => !previous)}
+            className="rounded-lg p-2 text-slate-700 transition-colors hover:bg-slate-100 md:hidden"
           >
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
 
         {/* Mobile menu */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden border-t border-slate-200 bg-white px-5 py-5 md:hidden"
+            >
+              <div className="flex flex-col gap-4">
+                {navItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => scrollToSection(item.id)}
+                    className="text-start text-[15px] font-medium text-slate-700 transition-colors hover:text-blue-700"
+                  >
+                    {item.label}
+                  </button>
+                ))}
 
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{
-              opacity: 0,
-              height: 0,
-            }}
-            animate={{
-              opacity: 1,
-              height: "auto",
-            }}
-            exit={{
-              opacity: 0,
-              height: 0,
-            }}
-            className="border-t border-slate-200 bg-white px-5 py-5 md:hidden"
-          >
-            <div className="flex flex-col gap-5">
-              <button
-                onClick={() => scrollToSection("features")}
-                className="text-left text-[15px] font-medium text-slate-700"
-              >
-                Features
-              </button>
+                {/* Mobile language selector */}
+                <div className="border-t border-slate-200 pt-4">
+                  <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <Globe2 size={16} />
+                    {t("common.language")}
+                  </p>
 
-              <button
-                onClick={() => scrollToSection("how-it-works")}
-                className="text-left text-[15px] font-medium text-slate-700"
-              >
-                How It Works
-              </button>
+                  <div className="grid grid-cols-3 gap-2">
+                    {languages.map((item) => (
+                      <button
+                        key={item.code}
+                        type="button"
+                        onClick={() => handleLanguageChange(item.code)}
+                        className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors ${
+                          language === item.code
+                            ? "border-blue-700 bg-blue-50 text-blue-700"
+                            : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-              <button
-                onClick={() => scrollToSection("pricing")}
-                className="text-left text-[15px] font-medium text-slate-700"
-              >
-                Pricing
-              </button>
+                <div className="flex gap-3 border-t border-slate-200 pt-4">
+                  <Link
+                    to="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex-1 rounded-md border border-slate-300 py-2.5 text-center text-[14px] font-semibold text-slate-800"
+                  >
+                    {t("common.login")}
+                  </Link>
 
-              <div className="flex gap-3 border-t border-slate-200 pt-4">
-                <Link
-                  to="/login"
-                  className="flex-1 rounded-md border border-slate-300 py-2.5 text-center text-[14px] font-semibold"
-                >
-                  Log In
-                </Link>
-
-                <Link
-                  to="/signup"
-                  className="flex-1 rounded-md bg-blue-700 py-2.5 text-center text-[14px] font-semibold text-white"
-                >
-                  Sign Up
-                </Link>
+                  <Link
+                    to="/signup"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex-1 rounded-md bg-blue-700 py-2.5 text-center text-[14px] font-semibold text-white"
+                  >
+                    {t("common.signup")}
+                  </Link>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
-      {/* =========================================================
-          HERO
-      ========================================================== */}
-
-      <section className="relative overflow-hidden px-5 pb-20 pt-20 sm:px-8 sm:pb-24 sm:pt-24 lg:px-10 lg:pb-28 lg:pt-24">
+      {/* HERO */}
+      <section className="relative scroll-mt-20 overflow-hidden px-5 pb-20 pt-20 sm:px-8 sm:pb-24 sm:pt-24 lg:px-10 lg:pb-28 lg:pt-24">
         {/* Background decoration */}
-
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute left-1/2 top-0 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-blue-100/25 blur-3xl" />
-
           <div className="absolute inset-0 opacity-[0.18] [background-image:radial-gradient(#94a3b8_0.6px,transparent_0.6px)] [background-size:22px_22px]" />
         </div>
 
         <div className="relative mx-auto max-w-[900px] text-center">
           <motion.div
-            initial={{
-              opacity: 0,
-              y: 20,
-            }}
-            animate={{
-              opacity: 1,
-              y: 0,
-            }}
-            transition={{
-              duration: 0.6,
-            }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
           >
-            <h1 className="mx-auto max-w-[800px] text-[38px] font-bold leading-[1.15] tracking-[-0.04em] text-slate-950 sm:text-[46px] lg:text-[52px]">
-              Manage Your Computer Store Smarter
+            <h1 className="mx-auto max-w-[800px] text-[36px] font-bold leading-[1.2] tracking-[-0.035em] text-slate-950 sm:text-[46px] lg:text-[52px]">
+              {t("landing.hero.title")}
             </h1>
 
             <p className="mx-auto mt-6 max-w-[700px] text-[16px] leading-7 text-slate-600 sm:text-[17px]">
-              Take control of your inventory, track sales and profits in
-              real-time, and generate actionable reports. The all-in-one ERP
-              built for IT retailers.
+              {t("landing.hero.description")}
             </p>
 
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link to="/signup">
                 <motion.div
-                  whileHover={{
-                    y: -2,
-                  }}
-                  whileTap={{
-                    scale: 0.98,
-                  }}
-                  className="flex h-[48px] min-w-[135px] items-center justify-center gap-2 rounded-md bg-blue-700 px-6 text-[14px] font-semibold text-white shadow-md shadow-blue-700/15 transition-colors hover:bg-blue-800"
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="flex h-[48px] min-w-[150px] items-center justify-center gap-2 rounded-md bg-blue-700 px-6 text-[14px] font-semibold text-white shadow-md shadow-blue-700/15 transition-colors hover:bg-blue-800"
                 >
-                  Get Started
-                  <ArrowRight size={17} />
+                  {t("landing.hero.getStarted")}
+                  <ArrowRight size={17} className={isRTL ? "rotate-180" : ""} />
                 </motion.div>
               </Link>
 
               <button
+                type="button"
                 onClick={() => scrollToSection("dashboard-preview")}
-                className="flex h-[48px] min-w-[140px] items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-6 text-[14px] font-medium text-slate-800 transition-all hover:border-blue-500 hover:text-blue-700"
+                className="flex h-[48px] min-w-[150px] items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-6 text-[14px] font-medium text-slate-800 transition-all hover:border-blue-500 hover:text-blue-700"
               >
                 <span className="flex h-5 w-5 items-center justify-center rounded-full border border-slate-700">
-                  <span className="ml-[1px] text-[9px]">▶</span>
+                  <span className="text-[9px]">▶</span>
                 </span>
-                View Demo
+                {t("landing.hero.viewDemo")}
               </button>
             </div>
           </motion.div>
         </div>
 
-        {/* =====================================================
-            DASHBOARD PREVIEW
-        ====================================================== */}
-
+        {/* Dashboard preview */}
         <motion.div
           id="dashboard-preview"
-          initial={{
-            opacity: 0,
-            y: 50,
-          }}
-          whileInView={{
-            opacity: 1,
-            y: 0,
-          }}
-          viewport={{
-            once: true,
-            amount: 0.2,
-          }}
-          transition={{
-            duration: 0.8,
-          }}
-          className="relative mx-auto mt-14 max-w-[1000px] sm:mt-16"
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.8 }}
+          className="relative mx-auto mt-14 max-w-[1000px] scroll-mt-24 sm:mt-16"
         >
           <div className="overflow-hidden rounded-xl border border-slate-300 bg-white p-1.5 shadow-[0_20px_60px_rgba(15,23,42,0.10)] sm:rounded-2xl sm:p-2">
             <img
               src={dashboardPreview}
-              alt="CompStore ERP dashboard"
+              alt={t("landing.images.dashboardAlt")}
               className="block h-auto w-full rounded-lg object-cover"
             />
           </div>
         </motion.div>
       </section>
 
-      {/* =========================================================
-          FEATURES
-      ========================================================== */}
-
+      {/* FEATURES */}
       <section
         id="features"
-        className="bg-[#f1f2ff] px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-24"
+        className="scroll-mt-20 bg-[#f1f2ff] px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-24"
       >
         <div className="mx-auto max-w-[1100px]">
           <motion.div
-            initial={{
-              opacity: 0,
-              y: 20,
-            }}
-            whileInView={{
-              opacity: 1,
-              y: 0,
-            }}
-            viewport={{
-              once: true,
-            }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
             className="text-center"
           >
-            <h2 className="text-[32px] font-bold tracking-[-0.035em] text-slate-950 sm:text-[38px]">
-              Everything you need to run your store
+            <h2 className="text-[30px] font-bold tracking-[-0.025em] text-slate-950 sm:text-[38px]">
+              {t("landing.features.heading")}
             </h2>
 
-            <p className="mt-4 text-[15px] text-slate-600 sm:text-[16px]">
-              Powerful tools designed specifically for hardware retailers and
-              repair shops.
+            <p className="mt-4 text-[15px] leading-7 text-slate-600 sm:text-[16px]">
+              {t("landing.features.subtitle")}
             </p>
           </motion.div>
 
@@ -460,25 +413,11 @@ const Landingpage = () => {
               return (
                 <motion.div
                   key={feature.title}
-                  initial={{
-                    opacity: 0,
-                    y: 25,
-                  }}
-                  whileInView={{
-                    opacity: 1,
-                    y: 0,
-                  }}
-                  viewport={{
-                    once: true,
-                    amount: 0.2,
-                  }}
-                  transition={{
-                    duration: 0.5,
-                    delay: index * 0.08,
-                  }}
-                  whileHover={{
-                    y: -4,
-                  }}
+                  initial={{ opacity: 0, y: 25 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.2 }}
+                  transition={{ duration: 0.5, delay: index * 0.08 }}
+                  whileHover={{ y: -4 }}
                   className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm transition-shadow hover:shadow-md sm:p-6"
                 >
                   <div
@@ -501,64 +440,37 @@ const Landingpage = () => {
         </div>
       </section>
 
-      {/* =========================================================
-          HOW IT WORKS / BENEFITS
-      ========================================================== */}
-
+      {/* HOW IT WORKS / BENEFITS */}
       <section
         id="how-it-works"
-        className="px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-24"
+        className="scroll-mt-20 px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-24"
       >
-        <div className="mx-auto grid max-w-[1100px] items-center gap-12 lg:grid-cols-[1fr_1fr] lg:gap-14">
+        <div className="mx-auto grid max-w-[1100px] items-center gap-12 lg:grid-cols-2 lg:gap-14">
           {/* Image */}
-
           <motion.div
-            initial={{
-              opacity: 0,
-              x: -35,
-            }}
-            whileInView={{
-              opacity: 1,
-              x: 0,
-            }}
-            viewport={{
-              once: true,
-              amount: 0.2,
-            }}
-            transition={{
-              duration: 0.7,
-            }}
+            initial={{ opacity: 0, x: isRTL ? 35 : -35 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.7 }}
           >
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-md">
               <img
                 src={storeOwner}
-                alt="Store owner using CompStore ERP"
+                alt={t("landing.images.storeOwnerAlt")}
                 className="h-auto w-full object-cover"
               />
             </div>
           </motion.div>
 
           {/* Content */}
-
           <motion.div
-            initial={{
-              opacity: 0,
-              x: 35,
-            }}
-            whileInView={{
-              opacity: 1,
-              x: 0,
-            }}
-            viewport={{
-              once: true,
-              amount: 0.2,
-            }}
-            transition={{
-              duration: 0.7,
-            }}
+            initial={{ opacity: 0, x: isRTL ? -35 : 35 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.7 }}
           >
-            <h2 className="text-[32px] font-bold tracking-[-0.035em] text-slate-950 sm:text-[38px]">
-              Clarity Drives Profit
+            <h2 className="text-[30px] font-bold tracking-[-0.025em] text-slate-950 sm:text-[38px]">
+              {t("landing.benefits.heading")}
             </h2>
 
             <div className="mt-8 space-y-6">
@@ -592,55 +504,47 @@ const Landingpage = () => {
         </div>
       </section>
 
-      {/* =========================================================
-          PRICING PLACEHOLDER
-      ========================================================== */}
-
+      {/* PRICING */}
       <section
         id="pricing"
         className="scroll-mt-20 bg-[#f1f2ff] px-5 py-20 sm:px-8 lg:px-10"
       >
         <div className="mx-auto max-w-[800px] text-center">
-          <h2 className="text-[31px] font-bold tracking-[-0.03em] sm:text-[36px]">
-            Simple pricing for growing stores
+          <h2 className="text-[30px] font-bold tracking-[-0.025em] sm:text-[36px]">
+            {t("landing.pricing.heading")}
           </h2>
 
-          <p className="mt-4 text-[15px] leading-6 text-slate-600 sm:text-[16px]">
-            Choose the plan that fits your business. More pricing options can be
-            added as the platform grows.
+          <p className="mt-4 text-[15px] leading-7 text-slate-600 sm:text-[16px]">
+            {t("landing.pricing.description")}
           </p>
 
           <motion.div
-            whileHover={{
-              y: -4,
-            }}
+            whileHover={{ y: -4 }}
             className="mx-auto mt-8 max-w-[390px] rounded-xl border border-slate-300 bg-white p-7 shadow-sm"
           >
             <p className="text-[15px] font-semibold text-blue-700">
               CompStore ERP
             </p>
 
-            <h3 className="mt-3 text-3xl font-bold">Coming Soon</h3>
+            <h3 className="mt-3 text-3xl font-bold">
+              {t("landing.pricing.comingSoon")}
+            </h3>
 
             <p className="mt-3 text-[14px] leading-6 text-slate-600">
-              Professional inventory, sales, expense and reporting tools for
-              your store.
+              {t("landing.pricing.planDescription")}
             </p>
 
             <Link
               to="/signup"
               className="mt-6 flex h-12 items-center justify-center rounded-md bg-blue-700 text-[14px] font-semibold text-white transition-colors hover:bg-blue-800"
             >
-              Get Started
+              {t("landing.hero.getStarted")}
             </Link>
           </motion.div>
         </div>
       </section>
 
-      {/* =========================================================
-          FOOTER
-      ========================================================== */}
-
+      {/* FOOTER */}
       <footer className="border-t border-slate-300 bg-[#e5e6f1]">
         <div className="mx-auto flex max-w-[1400px] flex-col gap-4 px-5 py-7 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:px-10">
           <div className="flex flex-wrap items-center gap-3">
@@ -651,27 +555,27 @@ const Landingpage = () => {
             <span className="hidden text-slate-400 sm:inline">|</span>
 
             <span className="text-[13px] text-slate-600">
-              © 2024 CompStore ERP Solutions. All rights reserved.
+              {t("landing.footer.copyright")}
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-5 text-[13px] text-slate-700">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-[13px] text-slate-700">
             <Link
               to="/privacy"
               className="transition-colors hover:text-blue-700"
             >
-              Privacy Policy
+              {t("landing.footer.privacy")}
             </Link>
 
             <Link to="/terms" className="transition-colors hover:text-blue-700">
-              Terms of Service
+              {t("landing.footer.terms")}
             </Link>
 
             <Link
               to="/contact"
               className="transition-colors hover:text-blue-700"
             >
-              Contact Support
+              {t("landing.footer.contact")}
             </Link>
           </div>
         </div>

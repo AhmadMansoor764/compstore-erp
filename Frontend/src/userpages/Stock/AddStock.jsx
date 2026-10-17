@@ -4,7 +4,6 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Boxes,
-  PackagePlus,
   Save,
   X,
   Search,
@@ -25,6 +24,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useLanguage } from "../../context/LanguageContext";
 
 const API_URL = `${import.meta.env.VITE_API_URL}/api`;
 
@@ -37,12 +37,6 @@ const initialForm = {
   sellingPrice: "",
   description: "",
 };
-
-const money = (value) =>
-  Number(value || 0).toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  });
 
 const dropdownVariants = {
   hidden: { opacity: 0, y: -5, scale: 0.99 },
@@ -57,6 +51,7 @@ const dropdownVariants = {
 
 const AddStock = () => {
   const navigate = useNavigate();
+  const { t, language, direction } = useLanguage();
 
   const categoryRef = useRef(null);
   const supplierRef = useRef(null);
@@ -84,6 +79,16 @@ const AddStock = () => {
   const [productSearchOpen, setProductSearchOpen] = useState(false);
   const [isLoadingPurchases, setIsLoadingPurchases] = useState(true);
 
+  const money = (value) => {
+    const locale =
+      language === "fa" ? "fa-AF" : language === "ps" ? "ps-AF" : "en-US";
+
+    return Number(value || 0).toLocaleString(locale, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
+  };
+
   useEffect(() => {
     const loadFormOptions = async () => {
       try {
@@ -95,22 +100,20 @@ const AddStock = () => {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.message || "Failed to load form options.");
+          throw new Error(data.message || t("addStock.errors.loadOptions"));
         }
 
         setCategories(data.categories || []);
         setSuppliers(data.suppliers || []);
       } catch (error) {
-        toast.error(
-          error.message || "Could not load categories and suppliers.",
-        );
+        toast.error(error.message || t("addStock.errors.loadOptionsFallback"));
       } finally {
         setIsLoadingOptions(false);
       }
     };
 
     loadFormOptions();
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     const loadPurchaseItems = async () => {
@@ -122,7 +125,7 @@ const AddStock = () => {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.message || "Failed to load purchase items.");
+          throw new Error(data.message || t("addStock.errors.loadPurchases"));
         }
 
         const purchases = Array.isArray(data) ? data : data.purchases || [];
@@ -138,14 +141,16 @@ const AddStock = () => {
 
         setPurchaseItems(items);
       } catch (error) {
-        toast.error(error.message || "Could not load purchase items.");
+        toast.error(
+          error.message || t("addStock.errors.loadPurchasesFallback"),
+        );
       } finally {
         setIsLoadingPurchases(false);
       }
     };
 
     loadPurchaseItems();
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -228,7 +233,7 @@ const AddStock = () => {
       setSupplierSearch(item.supplier.name || "");
     }
 
-    toast.success("Purchase item selected. Review the remaining quantity.");
+    toast.success(t("addStock.success.purchaseSelected"));
   };
 
   const handleChange = (event) => {
@@ -310,11 +315,11 @@ const AddStock = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Could not create category.");
+        throw new Error(data.message || t("addStock.errors.createCategory"));
       }
 
       if (!data.category) {
-        throw new Error("The server did not return the saved category.");
+        throw new Error(t("addStock.errors.serverCategory"));
       }
 
       setCategories((current) => {
@@ -329,9 +334,9 @@ const AddStock = () => {
       setCategorySearch(data.category.name);
       setCategoryOpen(false);
 
-      toast.success(data.message || "Category saved successfully.");
+      toast.success(data.message || t("addStock.success.categorySaved"));
     } catch (error) {
-      toast.error(error.message || "Could not create category.");
+      toast.error(error.message || t("addStock.errors.createCategory"));
     } finally {
       setIsCreatingCategory(false);
     }
@@ -364,7 +369,7 @@ const AddStock = () => {
       purchasePrice === "" ||
       sellingPrice === ""
     ) {
-      toast.error("Please fill in all required fields and select a category.");
+      toast.error(t("addStock.validation.required"));
       return;
     }
 
@@ -376,7 +381,7 @@ const AddStock = () => {
     ];
 
     if (numericValues.some((value) => !Number.isFinite(value) || value < 0)) {
-      toast.error("Please enter valid non-negative numbers.");
+      toast.error(t("addStock.validation.numbers"));
       return;
     }
 
@@ -384,7 +389,7 @@ const AddStock = () => {
       !Number.isInteger(Number(quantity)) ||
       !Number.isInteger(Number(minStock))
     ) {
-      toast.error("Quantity and minimum stock must be whole numbers.");
+      toast.error(t("addStock.validation.integers"));
       return;
     }
 
@@ -392,7 +397,7 @@ const AddStock = () => {
       !/^\d+(\.\d{1,2})?$/.test(purchasePrice) ||
       !/^\d+(\.\d{1,2})?$/.test(sellingPrice)
     ) {
-      toast.error("Prices must have no more than two decimal places.");
+      toast.error(t("addStock.validation.decimals"));
       return;
     }
 
@@ -402,13 +407,16 @@ const AddStock = () => {
         Number(selectedPurchaseItem.quantity_added_to_stock || 0);
 
       if (remaining <= 0) {
-        toast.error("This purchase item has no remaining quantity.");
+        toast.error(t("addStock.validation.noRemaining"));
         return;
       }
 
       if (Number(quantity) !== remaining) {
         toast.error(
-          `This purchase has ${remaining} unit(s) remaining. Please use that quantity.`,
+          t("addStock.validation.remainingQuantity").replace(
+            "{quantity}",
+            String(remaining),
+          ),
         );
         return;
       }
@@ -454,13 +462,13 @@ const AddStock = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to save stock.");
+        throw new Error(data.message || t("addStock.errors.saveStock"));
       }
 
-      toast.success(data.message || "Stock added successfully.");
+      toast.success(data.message || t("addStock.success.stockAdded"));
       navigate("/dashboard/stock");
     } catch (error) {
-      toast.error(error.message || "Failed to save stock.");
+      toast.error(error.message || t("addStock.errors.saveStockFallback"));
     } finally {
       setIsSubmitting(false);
     }
@@ -478,6 +486,7 @@ const AddStock = () => {
 
   return (
     <motion.div
+      dir={direction}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28 }}
@@ -654,27 +663,25 @@ const AddStock = () => {
         }
       `}</style>
 
-      {/* Page heading */}
       <div className="mb-6">
         <Link to="/dashboard/stock" className="as-back mb-5">
           <ArrowLeft size={16} />
-          Back to inventory
+          {t("addStock.back")}
         </Link>
 
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <div className="as-eyebrow mb-2">
               <Sparkles size={13} />
-              Inventory management
+              {t("addStock.eyebrow")}
             </div>
 
             <h1 className="text-2xl font-extrabold tracking-tight text-[#182338] sm:text-3xl">
-              Add new stock
+              {t("addStock.title")}
             </h1>
 
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[#718096]">
-              Add a product to your inventory, organize it, and set your pricing
-              and stock alert.
+              {t("addStock.description")}
             </p>
           </div>
 
@@ -684,17 +691,16 @@ const AddStock = () => {
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-[#8995a7]">
-                New inventory
+                {t("addStock.newInventory")}
               </p>
               <p className="mt-0.5 text-xs font-bold text-[#263449]">
-                Product setup
+                {t("addStock.productSetup")}
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Form */}
       <form onSubmit={handleSubmit} className="as-panel">
         <div className="as-panel-head">
           <div className="as-icon-box">
@@ -702,31 +708,30 @@ const AddStock = () => {
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="text-sm font-extrabold text-[#1e293b] sm:text-base">
-              Product information
+              {t("addStock.productInformation")}
             </h2>
             <p className="mt-1 text-xs leading-5 text-[#7b8798]">
-              Enter the details needed to identify and manage this product.
+              {t("addStock.productInformationDescription")}
             </p>
           </div>
           <span className="hidden items-center gap-1.5 rounded-full border border-[#e5e7eb] bg-white px-3 py-1.5 text-[10px] font-bold text-[#64748b] sm:inline-flex">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            Draft
+            {t("addStock.draft")}
           </span>
         </div>
 
         <div className="as-form-body space-y-7 p-6 sm:p-7">
-          {/* Basic details */}
           <section className="as-section">
             <h3 className="as-section-title">
               <span className="as-section-number">01</span>
-              Basic details
+              {t("addStock.basicDetails")}
             </h3>
 
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
-              {/* Product name / purchase item */}
               <div ref={productRef} className="relative">
                 <label htmlFor="productName" className="as-field-label">
-                  Product name <span className="as-required">*</span>
+                  {t("addStock.productName")}{" "}
+                  <span className="as-required">*</span>
                 </label>
 
                 <div className="as-input-wrap">
@@ -737,7 +742,7 @@ const AddStock = () => {
                     value={productSearch}
                     onChange={handleProductSearch}
                     onFocus={() => setProductSearchOpen(true)}
-                    placeholder="Search a purchase or enter a name"
+                    placeholder={t("addStock.searchPurchaseOrEnterName")}
                     autoComplete="off"
                     required
                     className="as-input as-with-icon"
@@ -759,7 +764,7 @@ const AddStock = () => {
                       {isLoadingPurchases ? (
                         <div className="as-menu-message flex items-center gap-2">
                           <LoaderCircle size={15} className="as-spin" />
-                          Loading purchase items...
+                          {t("addStock.loadingPurchaseItems")}
                         </div>
                       ) : filteredPurchaseItems.length > 0 ? (
                         filteredPurchaseItems.map((item) => {
@@ -782,11 +787,13 @@ const AddStock = () => {
                                   {item.product_name}
                                 </span>
                                 <span className="as-option-sub">
-                                  Purchase: {item.purchase_number || "—"} ·{" "}
-                                  {remaining} unit(s) remaining
+                                  {t("addStock.purchase")}:{" "}
+                                  {item.purchase_number || "—"} · {remaining}{" "}
+                                  {t("addStock.unitsRemaining")}
                                 </span>
                                 <span className="as-option-sub">
-                                  Unit price: {money(item.unit_price)}
+                                  {t("addStock.unitPrice")}:{" "}
+                                  {money(item.unit_price)}
                                 </span>
                               </span>
                               <span className="mt-1 text-indigo-600">
@@ -797,8 +804,7 @@ const AddStock = () => {
                         })
                       ) : (
                         <div className="as-menu-message">
-                          No purchase items with remaining quantity. You can
-                          enter a new product manually.
+                          {t("addStock.noPurchaseItems")}
                         </div>
                       )}
                     </motion.div>
@@ -806,23 +812,24 @@ const AddStock = () => {
                 </AnimatePresence>
 
                 <p className="as-field-help">
-                  Select an existing purchase item or type a new product name.
+                  {t("addStock.productSearchHelp")}
                 </p>
               </div>
 
               <FormField
-                label="SKU"
+                label={t("addStock.sku")}
                 name="sku"
                 value={formData.sku}
                 onChange={handleChange}
                 placeholder="e.g. SKU-1001"
                 icon={Hash}
+                optionalLabel={t("addStock.optional")}
               />
 
-              {/* Category */}
               <div ref={categoryRef} className="relative">
                 <label htmlFor="category" className="as-field-label">
-                  Category <span className="as-required">*</span>
+                  {t("addStock.category")}{" "}
+                  <span className="as-required">*</span>
                 </label>
 
                 <div className="as-input-wrap">
@@ -833,7 +840,7 @@ const AddStock = () => {
                     value={categorySearch}
                     onChange={handleCategoryInput}
                     onFocus={() => setCategoryOpen(true)}
-                    placeholder="Search or create a category"
+                    placeholder={t("addStock.searchOrCreateCategory")}
                     autoComplete="off"
                     required
                     className="as-input as-with-icon pr-10"
@@ -859,7 +866,7 @@ const AddStock = () => {
                       {isLoadingOptions ? (
                         <div className="as-menu-message flex items-center gap-2">
                           <LoaderCircle size={15} className="as-spin" />
-                          Loading categories...
+                          {t("addStock.loadingCategories")}
                         </div>
                       ) : (
                         <>
@@ -878,7 +885,7 @@ const AddStock = () => {
                                   {category.name}
                                 </span>
                                 <span className="as-option-sub">
-                                  Product category
+                                  {t("addStock.productCategory")}
                                 </span>
                               </span>
                               {selectedCategory?.id === category.id && (
@@ -907,11 +914,14 @@ const AddStock = () => {
                               <span className="as-option-text">
                                 <span className="as-option-title text-indigo-700">
                                   {isCreatingCategory
-                                    ? "Creating category..."
-                                    : `Create "${categorySearch.trim()}"`}
+                                    ? t("addStock.creatingCategory")
+                                    : t("addStock.createCategory").replace(
+                                        "{name}",
+                                        categorySearch.trim(),
+                                      )}
                                 </span>
                                 <span className="as-option-sub">
-                                  Add this category to your store
+                                  {t("addStock.addCategoryToStore")}
                                 </span>
                               </span>
                             </button>
@@ -920,8 +930,7 @@ const AddStock = () => {
                           {filteredCategories.length === 0 &&
                             !categorySearch.trim() && (
                               <div className="as-menu-message">
-                                No categories available yet. Start by creating
-                                one.
+                                {t("addStock.noCategories")}
                               </div>
                             )}
                         </>
@@ -930,16 +939,13 @@ const AddStock = () => {
                   )}
                 </AnimatePresence>
 
-                <p className="as-field-help">
-                  Choose a saved category or create one without leaving this
-                  page.
-                </p>
+                <p className="as-field-help">{t("addStock.categoryHelp")}</p>
               </div>
 
-              {/* Supplier */}
               <div ref={supplierRef} className="relative">
                 <label htmlFor="supplier" className="as-field-label">
-                  Supplier <span className="as-optional">Optional</span>
+                  {t("addStock.supplier")}{" "}
+                  <span className="as-optional">{t("addStock.optional")}</span>
                 </label>
 
                 <div className="as-input-wrap">
@@ -954,7 +960,7 @@ const AddStock = () => {
                       setSupplierOpen(true);
                     }}
                     onFocus={() => setSupplierOpen(true)}
-                    placeholder="Search registered suppliers"
+                    placeholder={t("addStock.searchSuppliers")}
                     autoComplete="off"
                     className="as-input as-with-icon pr-10"
                     aria-expanded={supplierOpen}
@@ -979,7 +985,7 @@ const AddStock = () => {
                       {isLoadingOptions ? (
                         <div className="as-menu-message flex items-center gap-2">
                           <LoaderCircle size={15} className="as-spin" />
-                          Loading suppliers...
+                          {t("addStock.loadingSuppliers")}
                         </div>
                       ) : (
                         <>
@@ -997,10 +1003,10 @@ const AddStock = () => {
                             </span>
                             <span className="as-option-text">
                               <span className="as-option-title">
-                                No supplier
+                                {t("addStock.noSupplier")}
                               </span>
                               <span className="as-option-sub">
-                                Save this product without a supplier
+                                {t("addStock.withoutSupplier")}
                               </span>
                             </span>
                           </button>
@@ -1037,15 +1043,13 @@ const AddStock = () => {
                           {filteredSuppliers.length === 0 &&
                             supplierSearch.trim() && (
                               <div className="as-menu-message">
-                                No matching supplier. Add suppliers through the
-                                Suppliers page first.
+                                {t("addStock.noMatchingSupplier")}
                               </div>
                             )}
 
                           {suppliers.length === 0 && !supplierSearch.trim() && (
                             <div className="as-menu-message">
-                              No suppliers yet. You can add one through the
-                              Suppliers page.
+                              {t("addStock.noSuppliers")}
                             </div>
                           )}
                         </>
@@ -1054,35 +1058,33 @@ const AddStock = () => {
                   )}
                 </AnimatePresence>
 
-                <p className="as-field-help">
-                  Link a supplier to keep your inventory organized.
-                </p>
+                <p className="as-field-help">{t("addStock.supplierHelp")}</p>
               </div>
 
               <div className="md:col-span-2">
                 <FormField
-                  label="Description"
+                  label={t("addStock.descriptionLabel")}
                   name="description"
                   value={formData.description}
                   onChange={handleChange}
-                  placeholder="Add specifications, model details, color, or other useful notes..."
+                  placeholder={t("addStock.descriptionPlaceholder")}
                   multiline
                   icon={FileText}
+                  optionalLabel={t("addStock.optional")}
                 />
               </div>
             </div>
           </section>
 
-          {/* Stock details */}
           <section className="as-section">
             <h3 className="as-section-title">
               <span className="as-section-number">02</span>
-              Stock details
+              {t("addStock.stockDetails")}
             </h3>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <FormField
-                label="Quantity"
+                label={t("addStock.quantity")}
                 name="quantity"
                 type="number"
                 min="0"
@@ -1092,10 +1094,11 @@ const AddStock = () => {
                 placeholder="e.g. 20"
                 required
                 icon={Boxes}
+                optionalLabel={t("addStock.optional")}
               />
 
               <FormField
-                label="Minimum stock alert"
+                label={t("addStock.minimumStockAlert")}
                 name="minStock"
                 type="number"
                 min="0"
@@ -1105,29 +1108,30 @@ const AddStock = () => {
                 placeholder="e.g. 5"
                 required
                 icon={CircleAlert}
+                optionalLabel={t("addStock.optional")}
               />
             </div>
 
             <div className="as-note mt-5">
               <Info size={16} className="mt-0.5 shrink-0 text-indigo-500" />
               <p>
-                <strong className="text-[#46536b]">Stock alert tip:</strong> The
-                minimum stock value helps you identify when a product is running
-                low. Choose a threshold that suits your store.
+                <strong className="text-[#46536b]">
+                  {t("addStock.stockAlertTip")}
+                </strong>{" "}
+                {t("addStock.stockAlertDescription")}
               </p>
             </div>
           </section>
 
-          {/* Pricing */}
           <section className="as-section">
             <h3 className="as-section-title">
               <span className="as-section-number">03</span>
-              Pricing
+              {t("addStock.pricing")}
             </h3>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <FormField
-                label="Purchase price"
+                label={t("addStock.purchasePrice")}
                 name="purchasePrice"
                 type="number"
                 min="0"
@@ -1138,10 +1142,11 @@ const AddStock = () => {
                 required
                 icon={DollarSign}
                 disabled={Boolean(selectedPurchaseItem)}
+                optionalLabel={t("addStock.optional")}
               />
 
               <FormField
-                label="Selling price"
+                label={t("addStock.sellingPrice")}
                 name="sellingPrice"
                 type="number"
                 min="0"
@@ -1151,6 +1156,7 @@ const AddStock = () => {
                 placeholder="e.g. 650"
                 required
                 icon={DollarSign}
+                optionalLabel={t("addStock.optional")}
               />
             </div>
 
@@ -1162,12 +1168,10 @@ const AddStock = () => {
                 />
                 <div>
                   <p className="font-extrabold text-[#384765]">
-                    Purchase item selected
+                    {t("addStock.purchaseItemSelected")}
                   </p>
                   <p className="mt-1">
-                    Quantity and purchase price are based on the remaining
-                    purchase quantity. These values are checked again when you
-                    submit the form.
+                    {t("addStock.purchaseItemDescription")}
                   </p>
                 </div>
               </div>
@@ -1177,7 +1181,7 @@ const AddStock = () => {
               <div className="as-price-preview mt-5">
                 <div>
                   <p className="text-xs font-bold text-[#7b8798]">
-                    Estimated profit per unit
+                    {t("addStock.estimatedProfit")}
                   </p>
                   <p
                     className={`mt-1 text-xl font-extrabold ${
@@ -1190,13 +1194,13 @@ const AddStock = () => {
                     {money(Math.abs(estimatedProfit))}
                   </p>
                   <p className="mt-1 text-[10px] text-[#8995a7]">
-                    Selling price minus purchase price
+                    {t("addStock.sellingMinusPurchase")}
                   </p>
                 </div>
 
                 {estimatedMargin !== null && (
                   <div className="as-profit">
-                    {estimatedMargin.toFixed(1)}% margin
+                    {estimatedMargin.toFixed(1)}% {t("addStock.margin")}
                   </div>
                 )}
               </div>
@@ -1204,17 +1208,17 @@ const AddStock = () => {
           </section>
         </div>
 
-        {/* Form actions */}
         <div className="as-footer">
           <p className="flex items-center gap-2 text-[11px] text-[#8995a7]">
             <Info size={14} />
-            Fields marked <span className="as-required">*</span> are required.
+            {t("addStock.requiredFields")}{" "}
+            <span className="as-required">*</span> {t("addStock.areRequired")}
           </p>
 
           <div className="flex flex-col-reverse gap-3 sm:flex-row">
             <Link to="/dashboard/stock" className="as-secondary">
               <X size={16} />
-              Cancel
+              {t("addStock.cancel")}
             </Link>
 
             <button
@@ -1227,7 +1231,9 @@ const AddStock = () => {
               ) : (
                 <Save size={17} />
               )}
-              {isSubmitting ? "Adding stock..." : "Save product"}
+              {isSubmitting
+                ? t("addStock.addingStock")
+                : t("addStock.saveProduct")}
             </button>
           </div>
         </div>
@@ -1235,8 +1241,7 @@ const AddStock = () => {
 
       <p className="mt-4 flex items-center justify-center gap-2 pb-2 text-center text-[10px] text-[#9aa5b5]">
         <Package size={13} />
-        Keep product details and prices accurate for reliable inventory
-        reporting.
+        {t("addStock.footer")}
       </p>
     </motion.div>
   );
@@ -1255,6 +1260,7 @@ const FormField = ({
   icon: Icon,
   multiline = false,
   disabled = false,
+  optionalLabel = "Optional",
 }) => {
   return (
     <div>
@@ -1265,7 +1271,7 @@ const FormField = ({
             *
           </span>
         ) : (
-          <span className="as-optional">Optional</span>
+          <span className="as-optional">{optionalLabel}</span>
         )}
       </label>
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useLanguage } from "../context/LanguageContext";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -30,6 +31,9 @@ const API_URL = `${import.meta.env.VITE_API_URL}/api`;
 const Profile = () => {
   const fileInputRef = useRef(null);
   const profileImageUrlRef = useRef("");
+
+  const { t, isRTL } = useLanguage();
+  const tr = (key, fallback) => t(`profile.${key}`, fallback);
 
   const [profileImage, setProfileImage] = useState("");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -96,13 +100,21 @@ const Profile = () => {
         const result = await response.json();
 
         if (!response.ok) {
-          throw new Error(result.message || "Could not load your profile.");
+          throw new Error(
+            result.message ||
+              tr("profileLoadFailed", "Could not load your profile."),
+          );
         }
 
         const user = result.user;
 
         if (!user) {
-          throw new Error("The server did not return your profile.");
+          throw new Error(
+            tr(
+              "profileServerMissing",
+              "The server did not return your profile.",
+            ),
+          );
         }
 
         const nameParts = (user.name || "").trim().split(/\s+/);
@@ -120,7 +132,10 @@ const Profile = () => {
       } catch (error) {
         console.error("Load profile error:", error);
         if (!cancelled) {
-          toast.error(error.message || "Could not load your profile.");
+          toast.error(
+            error.message ||
+              tr("profileLoadFailed", "Could not load your profile."),
+          );
         }
       } finally {
         if (!cancelled) setIsProfileLoading(false);
@@ -157,7 +172,8 @@ const Profile = () => {
           throw new Error(
             typeof result === "string"
               ? result
-              : result?.message || "Could not load store information.",
+              : result?.message ||
+                  tr("storeLoadFailed", "Could not load store information."),
           );
         }
 
@@ -180,7 +196,12 @@ const Profile = () => {
         const loadedStore = result?.store || result?.data;
 
         if (!loadedStore || !loadedStore.id) {
-          throw new Error("The server response did not contain a valid store.");
+          throw new Error(
+            tr(
+              "storeResponseInvalid",
+              "The server response did not contain a valid store.",
+            ),
+          );
         }
 
         if (cancelled) return;
@@ -198,8 +219,14 @@ const Profile = () => {
         if (cancelled) return;
 
         console.error("Load store error:", error);
-        setStoreLoadError(error.message || "Could not load store information.");
-        toast.error(error.message || "Could not load store information.");
+        setStoreLoadError(
+          error.message ||
+            tr("storeLoadFailed", "Could not load store information."),
+        );
+        toast.error(
+          error.message ||
+            tr("storeLoadFailed", "Could not load store information."),
+        );
       } finally {
         if (!cancelled) {
           setIsStoreLoading(false);
@@ -236,7 +263,7 @@ const Profile = () => {
     event.preventDefault();
 
     if (!storeForm.name.trim()) {
-      toast.error("Store name is required.");
+      toast.error(tr("storeNameRequired", "Store name is required."));
       return;
     }
 
@@ -267,7 +294,8 @@ const Profile = () => {
         throw new Error(
           typeof result === "string"
             ? result
-            : result?.message || "Could not create your store.",
+            : result?.message ||
+                tr("createStoreFailed", "Could not create your store."),
         );
       }
 
@@ -275,7 +303,10 @@ const Profile = () => {
 
       if (!savedStore || !savedStore.id) {
         throw new Error(
-          "The server response did not contain the created store. Check your backend response.",
+          tr(
+            "createdStoreResponseInvalid",
+            "The server response did not contain the created store. Check your backend response.",
+          ),
         );
       }
 
@@ -291,10 +322,16 @@ const Profile = () => {
       });
 
       setStoreLoadError("");
-      toast.success(result?.message || "Store created successfully.");
+      toast.success(
+        result?.message ||
+          tr("storeCreatedSuccess", "Store created successfully."),
+      );
     } catch (error) {
       console.error("Create store error:", error);
-      toast.error(error.message || "Could not create your store.");
+      toast.error(
+        error.message ||
+          tr("storeCreateFailed", "Could not create your store."),
+      );
     } finally {
       setIsSavingStore(false);
     }
@@ -306,17 +343,19 @@ const Profile = () => {
     const amount = Number(depositAmount);
 
     if (!store?.id) {
-      toast.error("Please create a store first.");
+      toast.error(tr("createStoreFirst", "Please create a store first."));
       return;
     }
 
     if (!Number.isFinite(amount) || amount <= 0) {
-      toast.error("Enter a valid deposit amount.");
+      toast.error(tr("validDepositAmount", "Enter a valid deposit amount."));
       return;
     }
 
     if (!/^\d+(\.\d{1,2})?$/.test(depositAmount.trim())) {
-      toast.error("Use no more than two decimal places.");
+      toast.error(
+        tr("depositDecimals", "Use no more than two decimal places."),
+      );
       return;
     }
 
@@ -338,15 +377,19 @@ const Profile = () => {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || "Failed to record deposit.");
+        throw new Error(
+          result.message || tr("depositFailed", "Failed to record deposit."),
+        );
       }
 
       setStore(result.store);
       setDepositAmount("");
       setDepositDescription("");
-      toast.success("Deposit recorded successfully.");
+      toast.success(tr("depositSuccess", "Deposit recorded successfully."));
     } catch (error) {
-      toast.error(error.message || "Something went wrong.");
+      toast.error(
+        error.message || tr("somethingWentWrong", "Something went wrong."),
+      );
     } finally {
       setIsDepositing(false);
     }
@@ -358,13 +401,13 @@ const Profile = () => {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      toast.error("Please select a valid image file.");
+      toast.error(tr("validImage", "Please select a valid image file."));
       event.target.value = "";
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image size must be less than 5MB.");
+      toast.error(tr("imageTooLarge", "Image size must be less than 5MB."));
       event.target.value = "";
       return;
     }
@@ -378,7 +421,7 @@ const Profile = () => {
     profileImageUrlRef.current = imageUrl;
     setProfileImage(imageUrl);
 
-    toast.success("Profile image selected.");
+    toast.success(tr("imageSelected", "Profile image selected."));
   };
 
   const removeProfileImage = () => {
@@ -393,7 +436,7 @@ const Profile = () => {
       fileInputRef.current.value = "";
     }
 
-    toast.success("Profile image removed.");
+    toast.success(tr("imageRemoved", "Profile image removed."));
   };
 
   const handleProfileChange = (event) => {
@@ -430,7 +473,7 @@ const Profile = () => {
       `${profile.firstName.trim()} ${profile.lastName.trim()}`.trim();
 
     if (!fullName || !profile.email.trim()) {
-      toast.error("Name and email are required.");
+      toast.error(tr("nameEmailRequired", "Name and email are required."));
       return;
     }
 
@@ -453,7 +496,10 @@ const Profile = () => {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || "Could not save your profile.");
+        throw new Error(
+          result.message ||
+            tr("profileSaveFailed", "Could not save your profile."),
+        );
       }
 
       const user = result.user;
@@ -471,10 +517,15 @@ const Profile = () => {
         }));
       }
 
-      toast.success(result.message || "Profile updated successfully.");
+      toast.success(
+        result.message || tr("profileSaved", "Profile updated successfully."),
+      );
     } catch (error) {
       console.error("Save profile error:", error);
-      toast.error(error.message || "Could not save your profile.");
+      toast.error(
+        error.message ||
+          tr("profileSaveFailed", "Could not save your profile."),
+      );
     } finally {
       setIsSavingProfile(false);
     }
@@ -490,22 +541,34 @@ const Profile = () => {
       !passwordData.newPassword ||
       !passwordData.confirmPassword
     ) {
-      toast.error("Please complete all password fields.");
+      toast.error(
+        tr("completePasswordFields", "Please complete all password fields."),
+      );
       return;
     }
 
     if (passwordData.newPassword.length < 8) {
-      toast.error("New password must contain at least 8 characters.");
+      toast.error(
+        tr(
+          "passwordMinLength",
+          "New password must contain at least 8 characters.",
+        ),
+      );
       return;
     }
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error("New passwords do not match.");
+      toast.error(tr("passwordsMismatch", "New passwords do not match."));
       return;
     }
 
     if (passwordData.currentPassword === passwordData.newPassword) {
-      toast.error("Your new password must differ from your current password.");
+      toast.error(
+        tr(
+          "passwordMustDiffer",
+          "Your new password must differ from your current password.",
+        ),
+      );
       return;
     }
 
@@ -531,7 +594,8 @@ const Profile = () => {
         throw new Error(
           typeof result === "string"
             ? result
-            : result?.message || "Could not change your password.",
+            : result?.message ||
+                tr("passwordChangeFailed", "Could not change your password."),
         );
       }
 
@@ -545,10 +609,16 @@ const Profile = () => {
       setShowNewPassword(false);
       setShowConfirmPassword(false);
 
-      toast.success(result.message || "Password changed successfully.");
+      toast.success(
+        result.message ||
+          tr("passwordChanged", "Password changed successfully."),
+      );
     } catch (error) {
       console.error("Change password error:", error);
-      toast.error(error.message || "Could not change your password.");
+      toast.error(
+        error.message ||
+          tr("passwordChangeFailed", "Could not change your password."),
+      );
     } finally {
       setIsChangingPassword(false);
     }
@@ -558,12 +628,19 @@ const Profile = () => {
     event.preventDefault();
 
     if (!emailData.newEmail.trim() || !emailData.password) {
-      toast.error("Please complete all email fields.");
+      toast.error(
+        tr("completeEmailFields", "Please complete all email fields."),
+      );
       return;
     }
 
     // No backend email-change endpoint is connected yet.
-    toast("Email changing is not connected to the backend yet.");
+    toast(
+      tr(
+        "emailChangeNotConnected",
+        "Email changing is not connected to the backend yet.",
+      ),
+    );
   };
 
   const getInitials = () => {
@@ -582,7 +659,10 @@ const Profile = () => {
     "rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7";
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+    <div
+      dir={isRTL ? "rtl" : "ltr"}
+      className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8"
+    >
       <div className="mx-auto max-w-7xl">
         <motion.div
           initial={{ opacity: 0, y: -15 }}
@@ -594,22 +674,25 @@ const Profile = () => {
               to="/dashboard"
               className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-indigo-600"
             >
-              <ArrowLeft size={17} />
-              Back to dashboard
+              {isRTL ? <ChevronRight size={17} /> : <ArrowLeft size={17} />}
+              {tr("backToDashboard", "Back to dashboard")}
             </Link>
 
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-              Profile Settings
+              {tr("title", "Profile Settings")}
             </h1>
 
             <p className="mt-1 text-sm text-slate-500">
-              Manage your owner profile, security, and account preferences.
+              {tr(
+                "subtitle",
+                "Manage your owner profile, security, and account preferences.",
+              )}
             </p>
           </div>
 
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700">
             <CheckCircle2 size={17} />
-            Account active
+            {tr("accountActive", "Account active")}
           </div>
         </motion.div>
 
@@ -629,7 +712,7 @@ const Profile = () => {
                     {profileImage ? (
                       <img
                         src={profileImage}
-                        alt="Owner profile"
+                        alt={tr("ownerProfileImage", "Owner profile")}
                         className="h-full w-full object-cover"
                       />
                     ) : (
@@ -641,7 +724,10 @@ const Profile = () => {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full border-4 border-white bg-indigo-600 text-white shadow-md transition hover:bg-indigo-700"
-                    aria-label="Upload profile image"
+                    aria-label={tr(
+                      "uploadProfileImage",
+                      "Upload profile image",
+                    )}
                   >
                     <Camera size={16} />
                   </button>
@@ -652,7 +738,10 @@ const Profile = () => {
                     accept="image/*"
                     onChange={handleImageChange}
                     className="hidden"
-                    aria-label="Choose profile image"
+                    aria-label={tr(
+                      "chooseProfileImage",
+                      "Choose profile image",
+                    )}
                   />
                 </div>
 
@@ -669,7 +758,12 @@ const Profile = () => {
                   </div>
                 </div>
 
-                <Link to="/dashboard/suppliers">supplier</Link>
+                <Link
+                  to="/dashboard/suppliers"
+                  className="mt-3 inline-block text-sm text-indigo-600 hover:text-indigo-700"
+                >
+                  {tr("ownerProfile", "Suppliers")}
+                </Link>
 
                 <div className="mt-6 grid grid-cols-2 gap-3">
                   <button
@@ -677,7 +771,7 @@ const Profile = () => {
                     onClick={() => fileInputRef.current?.click()}
                     className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
                   >
-                    Upload image
+                    {tr("uploadImage", "Upload image")}
                   </button>
 
                   <button
@@ -686,19 +780,24 @@ const Profile = () => {
                     disabled={!profileImage}
                     className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    Remove
+                    {tr("remove", "Remove")}
                   </button>
                 </div>
 
                 <p className="mt-3 text-center text-xs leading-5 text-slate-400">
-                  JPG, PNG or WEBP. Maximum file size: 5MB.
+                  {tr(
+                    "imageRequirements",
+                    "JPG, PNG or WEBP. Maximum file size: 5MB.",
+                  )}
                 </p>
               </div>
             </div>
 
             {/* Account summary */}
             <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h3 className="font-semibold text-slate-900">Account overview</h3>
+              <h3 className="font-semibold text-slate-900">
+                {tr("accountOverview", "Account overview")}
+              </h3>
 
               <div className="mt-5 space-y-4">
                 <div className="flex items-center justify-between gap-3">
@@ -707,12 +806,12 @@ const Profile = () => {
                       <ShieldCheck size={18} />
                     </div>
                     <span className="text-sm text-slate-600">
-                      Account security
+                      {tr("accountSecurity", "Account security")}
                     </span>
                   </div>
 
                   <span className="text-sm font-semibold text-emerald-600">
-                    Good
+                    {tr("good", "Good")}
                   </span>
                 </div>
 
@@ -721,11 +820,13 @@ const Profile = () => {
                     <div className="rounded-xl bg-emerald-50 p-2 text-emerald-600">
                       <Wallet size={18} />
                     </div>
-                    <span className="text-sm text-slate-600">Account type</span>
+                    <span className="text-sm text-slate-600">
+                      {tr("accountType", "Account type")}
+                    </span>
                   </div>
 
                   <span className="text-sm font-semibold text-slate-900">
-                    Owner
+                    {tr("owner", "Owner")}
                   </span>
                 </div>
 
@@ -734,11 +835,13 @@ const Profile = () => {
                     <div className="rounded-xl bg-amber-50 p-2 text-amber-600">
                       <Clock3 size={18} />
                     </div>
-                    <span className="text-sm text-slate-600">Last login</span>
+                    <span className="text-sm text-slate-600">
+                      {tr("lastLogin", "Last login")}
+                    </span>
                   </div>
 
                   <span className="text-sm font-semibold text-slate-900">
-                    Today
+                    {tr("today", "Today")}
                   </span>
                 </div>
               </div>
@@ -761,10 +864,13 @@ const Profile = () => {
 
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">
-                    Personal information
+                    {tr("personalInformation", "Personal information")}
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
-                    Update the information displayed on your owner profile.
+                    {tr(
+                      "personalInfoDescription",
+                      "Update the information displayed on your owner profile.",
+                    )}
                   </p>
                 </div>
               </div>
@@ -773,7 +879,7 @@ const Profile = () => {
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   <div>
                     <label className={labelClassName} htmlFor="firstName">
-                      First name *
+                      {tr("firstName", "First name")}
                     </label>
                     <input
                       id="firstName"
@@ -788,7 +894,7 @@ const Profile = () => {
 
                   <div>
                     <label className={labelClassName} htmlFor="lastName">
-                      Last name *
+                      {tr("lastName", "Last name")}
                     </label>
                     <input
                       id="lastName"
@@ -803,12 +909,14 @@ const Profile = () => {
 
                   <div>
                     <label className={labelClassName} htmlFor="profilePhone">
-                      Phone number *
+                      {tr("phoneNumber", "Phone number")}
                     </label>
                     <div className="relative">
                       <Phone
                         size={18}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                        className={`absolute top-1/2 -translate-y-1/2 text-slate-400 ${
+                          isRTL ? "right-4" : "left-4"
+                        }`}
                       />
                       <input
                         id="profilePhone"
@@ -816,7 +924,9 @@ const Profile = () => {
                         name="phone"
                         value={profile.phone}
                         onChange={handleProfileChange}
-                        className={`${inputClassName} pl-11`}
+                        className={`${inputClassName} ${
+                          isRTL ? "pr-11" : "pl-11"
+                        }`}
                         required
                       />
                     </div>
@@ -824,7 +934,7 @@ const Profile = () => {
 
                   <div className="sm:col-span-2">
                     <label className={labelClassName} htmlFor="profileLocation">
-                      Location *
+                      {tr("location", "Location")}
                     </label>
                     <div className="relative">
                       <MapPin
@@ -845,7 +955,7 @@ const Profile = () => {
 
                   <div className="sm:col-span-2">
                     <label className={labelClassName} htmlFor="profileBio">
-                      Short bio
+                      {tr("shortBio", "Short bio")}
                     </label>
                     <textarea
                       id="profileBio"
@@ -854,7 +964,10 @@ const Profile = () => {
                       onChange={handleProfileChange}
                       rows={4}
                       className={`${inputClassName} resize-none`}
-                      placeholder="Write a short description about yourself..."
+                      placeholder={tr(
+                        "bioPlaceholder",
+                        "Write a short description about yourself...",
+                      )}
                     />
                   </div>
                 </div>
@@ -862,10 +975,13 @@ const Profile = () => {
                 <div className="mt-6 flex justify-end">
                   <button
                     type="submit"
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                    disabled={isSavingProfile || isProfileLoading}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Save size={17} />
-                    {isSavingProfile ? "Saving..." : "Save profile"}
+                    {isSavingProfile
+                      ? tr("saving", "Saving...")
+                      : tr("saveProfile", "Save profile")}
                   </button>
                 </div>
               </form>
@@ -885,11 +1001,13 @@ const Profile = () => {
 
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">
-                    Store information
+                    {tr("storeInformation", "Store information")}
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
-                    Create your store or review the store connected to your
-                    account.
+                    {tr(
+                      "storeInfoDescription",
+                      "Create your store or review the store connected to your account.",
+                    )}
                   </p>
                 </div>
               </div>
@@ -897,7 +1015,7 @@ const Profile = () => {
               {isStoreLoading ? (
                 <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-5 text-sm text-slate-600">
                   <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-indigo-600" />
-                  Loading store information...
+                  {tr("loadingStore", "Loading store information...")}
                 </div>
               ) : storeLoadError ? (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
@@ -907,7 +1025,7 @@ const Profile = () => {
                     onClick={() => window.location.reload()}
                     className="mt-3 text-sm font-semibold text-amber-900 underline"
                   >
-                    Retry
+                    {tr("retry", "Retry")}
                   </button>
                 </div>
               ) : store ? (
@@ -915,19 +1033,22 @@ const Profile = () => {
                   <div className="flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                        Your store
+                        {tr("yourStore", "Your store")}
                       </p>
                       <h3 className="mt-1 text-lg font-bold text-slate-900">
                         {store.name}
                       </h3>
                       <p className="mt-1 text-sm text-slate-600">
-                        This store is linked to your signed-in account.
+                        {tr(
+                          "linkedStoreDescription",
+                          "This store is linked to your signed-in account.",
+                        )}
                       </p>
                     </div>
 
                     <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700">
                       <CheckCircle2 size={15} />
-                      Store created
+                      {tr("storeCreated", "Store created")}
                     </span>
                   </div>
 
@@ -935,21 +1056,22 @@ const Profile = () => {
                     <div className="flex flex-col gap-8 rounded-2xl border border-gray-200 bg-gray-50 p-4">
                       <div>
                         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Store email
+                          {tr("storeEmail", "Store email")}
                         </p>
                         <p className="mt-1 break-all text-sm font-semibold text-slate-800">
-                          {store.email || "Not provided"}
+                          {store.email || tr("notProvided", "Not provided")}
                         </p>
                       </div>
                       <div>
                         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Store phone
+                          {tr("storePhone", "Store phone")}
                         </p>
                         <p className="mt-1 text-sm font-semibold text-slate-800">
-                          {store.phone || "Not provided"}
+                          {store.phone || tr("notProvided", "Not provided")}
                         </p>
                       </div>
                     </div>
+
                     <div className="flex flex-col-reverse gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-4">
                       <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-4">
                         <div className="flex items-center gap-3">
@@ -959,7 +1081,7 @@ const Profile = () => {
 
                           <div>
                             <p className="text-sm text-gray-500">
-                              Store Balance
+                              {tr("storeBalance", "Store Balance")}
                             </p>
                             <p className="text-lg font-bold text-gray-900">
                               ${Number(store.balance ?? 0).toFixed(2)}
@@ -970,10 +1092,10 @@ const Profile = () => {
 
                       <div className="sm:col-span-2">
                         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Store address
+                          {tr("storeAddress", "Store address")}
                         </p>
                         <p className="mt-1 text-sm font-semibold text-slate-800">
-                          {store.address || "Not provided"}
+                          {store.address || tr("notProvided", "Not provided")}
                         </p>
                       </div>
                     </div>
@@ -983,7 +1105,7 @@ const Profile = () => {
                       className="mt-5 space-y-4 rounded-xl border border-gray-200 p-4"
                     >
                       <h3 className="text-base font-semibold text-gray-900">
-                        Add Money to Store
+                        {tr("addMoneyToStore", "Add Money to Store")}
                       </h3>
 
                       <div>
@@ -991,7 +1113,7 @@ const Profile = () => {
                           htmlFor="deposit-amount"
                           className="mb-1 block text-sm font-medium text-gray-700"
                         >
-                          Deposit Amount
+                          {tr("depositAmount", "Deposit Amount")}
                         </label>
 
                         <input
@@ -1002,7 +1124,7 @@ const Profile = () => {
                           required
                           value={depositAmount}
                           onChange={(e) => setDepositAmount(e.target.value)}
-                          placeholder="100.00"
+                          placeholder={tr("depositAmountPlaceholder", "100.00")}
                           className="w-full rounded-lg border border-gray-300 px-3 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
                       </div>
@@ -1012,7 +1134,7 @@ const Profile = () => {
                           htmlFor="deposit-description"
                           className="mb-1 block text-sm font-medium text-gray-700"
                         >
-                          Description (optional)
+                          {tr("depositDescription", "Description (optional)")}
                         </label>
 
                         <input
@@ -1023,7 +1145,10 @@ const Profile = () => {
                           onChange={(e) =>
                             setDepositDescription(e.target.value)
                           }
-                          placeholder="Cash added by owner"
+                          placeholder={tr(
+                            "depositDescriptionPlaceholder",
+                            "Cash added by owner",
+                          )}
                           className="w-full rounded-lg border border-gray-300 px-3 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
                       </div>
@@ -1033,7 +1158,9 @@ const Profile = () => {
                         disabled={isDepositing}
                         className="w-full rounded-lg bg-blue-600 px-4 py-3 font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {isDepositing ? "Recording Deposit..." : "Add Deposit"}
+                        {isDepositing
+                          ? tr("recordingDeposit", "Recording Deposit...")
+                          : tr("addDeposit", "Add Deposit")}
                       </button>
                     </form>
                   </div>
@@ -1045,12 +1172,14 @@ const Profile = () => {
                   </div>
 
                   <h3 className="mt-4 text-lg font-bold text-slate-900">
-                    No store created yet
+                    {tr("noStoreTitle", "No store created yet")}
                   </h3>
 
                   <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-                    Create your store to start managing products, stock,
-                    purchases, and sales.
+                    {tr(
+                      "noStoreDescription",
+                      "Create your store to start managing products, stock, purchases, and sales.",
+                    )}
                   </p>
 
                   <button
@@ -1059,7 +1188,7 @@ const Profile = () => {
                     className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
                   >
                     <StoreIcon size={17} />
-                    Create Store
+                    {tr("createStore", "Create Store")}
                   </button>
                 </div>
               )}
@@ -1079,11 +1208,13 @@ const Profile = () => {
 
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">
-                    Email address
+                    {tr("emailAddress", "Email address")}
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
-                    Your email is used for login, verification, and account
-                    recovery.
+                    {tr(
+                      "emailDescription",
+                      "Your email is used for login, verification, and account recovery.",
+                    )}
                   </p>
                 </div>
               </div>
@@ -1092,7 +1223,7 @@ const Profile = () => {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Current email
+                      {tr("currentEmail", "Current email")}
                     </p>
                     <p className="mt-1 break-all text-sm font-semibold text-slate-900">
                       {profile.email}
@@ -1101,7 +1232,7 @@ const Profile = () => {
 
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
                     <Check size={14} />
-                    Verified
+                    {tr("verified", "Verified")}
                   </span>
                 </div>
               </div>
@@ -1110,7 +1241,7 @@ const Profile = () => {
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   <div>
                     <label className={labelClassName} htmlFor="newEmail">
-                      New email address *
+                      {tr("newEmailAddress", "New email address")}
                     </label>
                     <input
                       id="newEmail"
@@ -1119,14 +1250,17 @@ const Profile = () => {
                       value={emailData.newEmail}
                       onChange={handleEmailChange}
                       className={inputClassName}
-                      placeholder="newemail@example.com"
+                      placeholder={tr(
+                        "emailPlaceholder",
+                        "newemail@example.com",
+                      )}
                       required
                     />
                   </div>
 
                   <div>
                     <label className={labelClassName} htmlFor="emailPassword">
-                      Current password *
+                      {tr("currentPassword", "Current password *")}
                     </label>
                     <input
                       id="emailPassword"
@@ -1135,7 +1269,10 @@ const Profile = () => {
                       value={emailData.password}
                       onChange={handleEmailChange}
                       className={inputClassName}
-                      placeholder="Enter your password"
+                      placeholder={tr(
+                        "passwordPlaceholder",
+                        "Enter your password",
+                      )}
                       required
                     />
                   </div>
@@ -1144,8 +1281,10 @@ const Profile = () => {
                 <div className="mt-5 flex items-start gap-2 rounded-xl bg-amber-50 p-4 text-sm leading-6 text-amber-800">
                   <ShieldCheck size={18} className="mt-0.5 shrink-0" />
                   <p>
-                    Changing your email will require a backend endpoint and
-                    verification flow before the new address becomes active.
+                    {tr(
+                      "emailChangeWarning",
+                      "Changing your email will require a backend endpoint and verification flow before the new address becomes active.",
+                    )}
                   </p>
                 </div>
 
@@ -1155,7 +1294,7 @@ const Profile = () => {
                     className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
                   >
                     <Mail size={17} />
-                    Change email
+                    {tr("changeEmail", "Change email")}
                   </button>
                 </div>
               </form>
@@ -1175,10 +1314,13 @@ const Profile = () => {
 
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">
-                    Change password
+                    {tr("changePassword", "Change password")}
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
-                    Use a strong password to protect your store account.
+                    {tr(
+                      "passwordDescription",
+                      "Use a strong password to protect your store account.",
+                    )}
                   </p>
                 </div>
               </div>
@@ -1187,7 +1329,7 @@ const Profile = () => {
                 <div className="space-y-5">
                   <div>
                     <label className={labelClassName} htmlFor="currentPassword">
-                      Current password *
+                      {tr("enterCurrentPassword", "Enter current password")}
                     </label>
 
                     <div className="relative">
@@ -1197,8 +1339,13 @@ const Profile = () => {
                         name="currentPassword"
                         value={passwordData.currentPassword}
                         onChange={handlePasswordChange}
-                        className={`${inputClassName} pr-12`}
-                        placeholder="Enter current password"
+                        className={`${inputClassName} ${
+                          isRTL ? "pl-12" : "pr-12"
+                        }`}
+                        placeholder={tr(
+                          "enterCurrentPassword",
+                          "Enter current password",
+                        )}
                         required
                       />
 
@@ -1209,10 +1356,12 @@ const Profile = () => {
                         }
                         aria-label={
                           showCurrentPassword
-                            ? "Hide current password"
-                            : "Show current password"
+                            ? tr("hideCurrentPassword", "Hide current password")
+                            : tr("showCurrentPassword", "Show current password")
                         }
-                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                        className={`absolute top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 ${
+                          isRTL ? "left-3" : "right-3"
+                        }`}
                       >
                         {showCurrentPassword ? (
                           <EyeOff size={18} />
@@ -1226,7 +1375,7 @@ const Profile = () => {
                   <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                     <div>
                       <label className={labelClassName} htmlFor="newPassword">
-                        New password *
+                        {tr("newPassword", "New password")}
                       </label>
 
                       <div className="relative">
@@ -1237,7 +1386,10 @@ const Profile = () => {
                           value={passwordData.newPassword}
                           onChange={handlePasswordChange}
                           className={`${inputClassName} pr-12`}
-                          placeholder="Minimum 8 characters"
+                          placeholder={tr(
+                            "minimumCharacters",
+                            "Minimum 8 characters",
+                          )}
                           required
                         />
 
@@ -1248,10 +1400,12 @@ const Profile = () => {
                           }
                           aria-label={
                             showNewPassword
-                              ? "Hide new password"
-                              : "Show new password"
+                              ? tr("hideNewPassword", "Hide new password")
+                              : tr("showNewPassword", "Show new password")
                           }
-                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                          className={`absolute top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 ${
+                            isRTL ? "left-3" : "right-3"
+                          }`}
                         >
                           {showNewPassword ? (
                             <EyeOff size={18} />
@@ -1267,7 +1421,7 @@ const Profile = () => {
                         className={labelClassName}
                         htmlFor="confirmPassword"
                       >
-                        Confirm new password *
+                        {tr("confirmNewPassword", "Confirm new password")}
                       </label>
 
                       <div className="relative">
@@ -1278,7 +1432,10 @@ const Profile = () => {
                           value={passwordData.confirmPassword}
                           onChange={handlePasswordChange}
                           className={`${inputClassName} pr-12`}
-                          placeholder="Repeat new password"
+                          placeholder={tr(
+                            "repeatNewPassword",
+                            "Repeat new password",
+                          )}
                           required
                         />
 
@@ -1289,10 +1446,18 @@ const Profile = () => {
                           }
                           aria-label={
                             showConfirmPassword
-                              ? "Hide confirmation password"
-                              : "Show confirmation password"
+                              ? tr(
+                                  "hideConfirmPassword",
+                                  "Hide confirmation password",
+                                )
+                              : tr(
+                                  "showConfirmPassword",
+                                  "Show confirmation password",
+                                )
                           }
-                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                          className={`absolute top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 ${
+                            isRTL ? "left-3" : "right-3"
+                          }`}
                         >
                           {showConfirmPassword ? (
                             <EyeOff size={18} />
@@ -1307,13 +1472,25 @@ const Profile = () => {
 
                 <div className="mt-5 rounded-xl bg-slate-50 p-4">
                   <p className="text-sm font-semibold text-slate-700">
-                    Password requirements
+                    {tr("passwordRequirements", "Password requirements")}
                   </p>
 
                   <ul className="mt-2 space-y-1 text-sm text-slate-500">
-                    <li>• At least 8 characters</li>
-                    <li>• Use uppercase and lowercase letters</li>
-                    <li>• Include at least one number or symbol</li>
+                    <li>
+                      {tr("requirementLength", "• At least 8 characters")}
+                    </li>
+                    <li>
+                      {tr(
+                        "requirementCase",
+                        "• Use uppercase and lowercase letters",
+                      )}
+                    </li>
+                    <li>
+                      {tr(
+                        "requirementNumber",
+                        "• Include at least one number or symbol",
+                      )}
+                    </li>
                   </ul>
                 </div>
 
@@ -1325,8 +1502,8 @@ const Profile = () => {
                   >
                     <LockKeyhole size={17} />
                     {isChangingPassword
-                      ? "Updating password..."
-                      : "Update password"}
+                      ? tr("updatingPassword", "Updating password...")
+                      : tr("updatePassword", "Update password")}
                   </button>
                 </div>
               </form>
@@ -1346,10 +1523,13 @@ const Profile = () => {
 
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">
-                    Security settings
+                    {tr("securitySettings", "Security settings")}
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
-                    Add extra protection to your owner account.
+                    {tr(
+                      "securityDescription",
+                      "Add extra protection to your owner account.",
+                    )}
                   </p>
                 </div>
               </div>
@@ -1363,10 +1543,13 @@ const Profile = () => {
 
                     <div>
                       <h3 className="font-semibold text-slate-900">
-                        Two-factor authentication
+                        {tr("twoFactor", "Two-factor authentication")}
                       </h3>
                       <p className="mt-1 text-sm text-slate-500">
-                        Require an additional verification code when logging in.
+                        {tr(
+                          "twoFactorDescription",
+                          "Require an additional verification code when logging in.",
+                        )}
                       </p>
                     </div>
                   </div>
@@ -1375,11 +1558,17 @@ const Profile = () => {
                     type="button"
                     role="switch"
                     aria-checked={twoFactorEnabled}
-                    aria-label="Toggle two-factor authentication"
+                    aria-label={tr(
+                      "twoFactor",
+                      "Toggle two-factor authentication",
+                    )}
                     onClick={() => {
                       setTwoFactorEnabled((previous) => !previous);
                       toast(
-                        "Two-factor authentication is a visual demo and is not connected to the backend.",
+                        tr(
+                          "twoFactorNotConnected",
+                          "Two-factor authentication is a visual demo and is not connected to the backend.",
+                        ),
                       );
                     }}
                     className={`relative h-7 w-12 shrink-0 rounded-full transition ${
@@ -1402,10 +1591,13 @@ const Profile = () => {
 
                     <div>
                       <h3 className="font-semibold text-slate-900">
-                        Login activity
+                        {tr("loginActivity", "Login activity")}
                       </h3>
                       <p className="mt-1 text-sm text-slate-500">
-                        Review recent devices and login sessions.
+                        {tr(
+                          "loginActivityDescription",
+                          "Review recent devices and login sessions.",
+                        )}
                       </p>
                     </div>
                   </div>
@@ -1414,12 +1606,15 @@ const Profile = () => {
                     type="button"
                     onClick={() =>
                       toast(
-                        "Login activity is not connected to the backend yet.",
+                        tr(
+                          "activityNotConnected",
+                          "Login activity is not connected to the backend yet.",
+                        ),
                       )
                     }
                     className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-700"
                   >
-                    View activity
+                    {tr("viewActivity", "View activity")}
                     <ChevronRight size={17} />
                   </button>
                 </div>
@@ -1440,10 +1635,13 @@ const Profile = () => {
 
                 <div>
                   <h2 className="text-lg font-bold text-red-900">
-                    Danger zone
+                    {tr("dangerZone", "Danger zone")}
                   </h2>
                   <p className="mt-1 text-sm text-red-700">
-                    These actions may affect your account and store data.
+                    {tr(
+                      "dangerDescription",
+                      "These actions may affect your account and store data.",
+                    )}
                   </p>
                 </div>
               </div>
@@ -1451,28 +1649,37 @@ const Profile = () => {
               <div className="flex flex-col justify-between gap-4 rounded-2xl border border-red-200 bg-white p-4 sm:flex-row sm:items-center">
                 <div>
                   <h3 className="font-semibold text-slate-900">
-                    Deactivate account
+                    {tr("deactivateAccount", "Deactivate account")}
                   </h3>
                   <p className="mt-1 text-sm text-slate-500">
-                    Temporarily disable your owner account.
+                    {tr(
+                      "deactivateDescription",
+                      "Temporarily disable your owner account.",
+                    )}
                   </p>
                 </div>
 
                 <button
                   type="button"
                   onClick={() =>
-                    toast("Account deactivation is not connected yet.")
+                    toast(
+                      tr(
+                        "deactivationNotConnected",
+                        "Account deactivation is not connected yet.",
+                      ),
+                    )
                   }
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
                 >
                   <X size={16} />
-                  Deactivate
+                  {tr("deactivate", "Deactivate")}
                 </button>
               </div>
             </motion.section>
           </main>
         </div>
       </div>
+
       {isCreateStoreModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/50 p-4 backdrop-blur-sm"
@@ -1501,10 +1708,13 @@ const Profile = () => {
                     id="create-store-title"
                     className="text-xl font-bold text-slate-900"
                   >
-                    Create your store
+                    {tr("createStoreTitle", "Create your store")}
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
-                    Enter your business information to get started.
+                    {tr(
+                      "createStoreDescription",
+                      "Enter your business information to get started.",
+                    )}
                   </p>
                 </div>
               </div>
@@ -1513,7 +1723,7 @@ const Profile = () => {
                 type="button"
                 onClick={() => setIsCreateStoreModalOpen(false)}
                 disabled={isSavingStore}
-                aria-label="Close create store dialog"
+                aria-label={tr("closeDialog", "Close create store dialog")}
                 className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
               >
                 <X size={20} />
@@ -1523,7 +1733,7 @@ const Profile = () => {
             <form onSubmit={handleStoreSubmit} className="space-y-5">
               <div>
                 <label className={labelClassName} htmlFor="storeName">
-                  Store name *
+                  {tr("storeName", "Store name")}
                 </label>
                 <input
                   id="storeName"
@@ -1532,13 +1742,14 @@ const Profile = () => {
                   value={storeForm.name}
                   onChange={handleStoreFormChange}
                   className={inputClassName}
-                  placeholder="e.g. CompStore"
+                  placeholder={tr("storeNamePlaceholder", "e.g. CompStore")}
                   required
                 />
               </div>
+
               <div>
                 <label className={labelClassName} htmlFor="storeEmail">
-                  Store email
+                  {tr("storeEmail", "Store email")}
                 </label>
                 <input
                   id="storeEmail"
@@ -1547,12 +1758,13 @@ const Profile = () => {
                   value={storeForm.email}
                   onChange={handleStoreFormChange}
                   className={inputClassName}
-                  placeholder="store@example.com"
+                  placeholder={tr("storeEmailPlaceholder", "store@example.com")}
                 />
               </div>
+
               <div>
                 <label className={labelClassName} htmlFor="storePhone">
-                  Store phone
+                  {tr("storePhone", "Store phone")}
                 </label>
                 <input
                   id="storePhone"
@@ -1561,12 +1773,16 @@ const Profile = () => {
                   value={storeForm.phone}
                   onChange={handleStoreFormChange}
                   className={inputClassName}
-                  placeholder="Enter store phone number"
+                  placeholder={tr(
+                    "storePhonePlaceholder",
+                    "Enter store phone number",
+                  )}
                 />
               </div>
+
               <div>
                 <label className={labelClassName} htmlFor="storeAddress">
-                  Store address
+                  {tr("storeAddress", "Store address")}
                 </label>
                 <input
                   id="storeAddress"
@@ -1575,7 +1791,10 @@ const Profile = () => {
                   value={storeForm.address}
                   onChange={handleStoreFormChange}
                   className={inputClassName}
-                  placeholder="City, area, street"
+                  placeholder={tr(
+                    "storeAddressPlaceholder",
+                    "City, area, street",
+                  )}
                 />
               </div>
 
@@ -1584,11 +1803,15 @@ const Profile = () => {
                   htmlFor="store-balance"
                   className="mb-2 block text-sm font-medium text-gray-700"
                 >
-                  Starting Balance
+                  {tr("startingBalance", "Starting Balance")}
                 </label>
 
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                  <span
+                    className={`absolute top-1/2 -translate-y-1/2 text-gray-500 ${
+                      isRTL ? "right-3" : "left-3"
+                    }`}
+                  >
                     $
                   </span>
 
@@ -1604,13 +1827,18 @@ const Profile = () => {
                         balance: e.target.value,
                       }))
                     }
-                    placeholder="0.00"
-                    className="w-full rounded-lg border border-gray-300 py-3 pl-8 pr-4 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    placeholder={tr("startingBalancePlaceholder", "0.00")}
+                    className={`w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 ${
+                      isRTL ? "pr-8" : "pl-8"
+                    }`}
                   />
                 </div>
 
                 <p className="mt-1 text-xs text-gray-500">
-                  Enter the money currently available in your store.
+                  {tr(
+                    "startingBalanceDescription",
+                    "Enter the money currently available in your store.",
+                  )}
                 </p>
               </div>
 
@@ -1621,7 +1849,7 @@ const Profile = () => {
                   disabled={isSavingStore}
                   className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
                 >
-                  Cancel
+                  {tr("cancel", "Cancel")}
                 </button>
 
                 <button
@@ -1632,12 +1860,12 @@ const Profile = () => {
                   {isSavingStore ? (
                     <>
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                      Creating store...
+                      {tr("creatingStore", "Creating store...")}
                     </>
                   ) : (
                     <>
                       <StoreIcon size={17} />
-                      Create Store
+                      {tr("createStore", "Create Store")}
                     </>
                   )}
                 </button>

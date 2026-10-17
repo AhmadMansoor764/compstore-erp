@@ -11,8 +11,9 @@ import {
   LoaderCircle,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { useLanguage } from "../../context/LanguageContext";
 
-const API_BASE_URL = `${import.meta.env.VITE_API_URL}`;
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const formatMoney = (value) =>
   Number(value || 0).toLocaleString("en-US", {
@@ -34,6 +35,24 @@ const getErrorMessage = async (response) => {
 const EditSale = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { t } = useLanguage();
+
+  // Supports translations containing placeholders such as {number}.
+  const tx = (key, params = {}) => {
+    let text = t(key);
+
+    if (typeof text !== "string") {
+      return text;
+    }
+
+    Object.entries(params).forEach(([name, value]) => {
+      text = text
+        .replaceAll(`{{${name}}}`, String(value))
+        .replaceAll(`{${name}}`, String(value));
+    });
+
+    return text;
+  };
 
   const [sale, setSale] = useState(null);
   const [customerName, setCustomerName] = useState("");
@@ -53,7 +72,7 @@ const EditSale = () => {
 
     const loadSale = async () => {
       if (!id || !/^\d+$/.test(id)) {
-        setLoadError("Invalid sale ID.");
+        setLoadError(t("editSale.invalidSaleId"));
         setLoading(false);
         return;
       }
@@ -76,7 +95,7 @@ const EditSale = () => {
         const record = data.sale || data;
 
         if (!record || !record.id) {
-          throw new Error("The requested sale could not be found.");
+          throw new Error(t("editSale.saleNotFound"));
         }
 
         const saleItems = Array.isArray(record.items)
@@ -86,7 +105,7 @@ const EditSale = () => {
             : [];
 
         if (saleItems.length === 0) {
-          throw new Error("This sale has no product items to edit.");
+          throw new Error(t("editSale.noProductItems"));
         }
 
         setSale(record);
@@ -103,7 +122,8 @@ const EditSale = () => {
           saleItems.map((item) => ({
             id: item.id,
             productId: item.product_id ?? item.product?.id ?? null,
-            name: item.product_name || item.product?.name || "Product",
+            name:
+              item.product_name || item.product?.name || t("editSale.product"),
             quantity: Number(item.quantity || 1),
             price: Number(item.unit_price || 0),
             purchasePrice: Number(item.purchase_price || 0),
@@ -112,7 +132,7 @@ const EditSale = () => {
       } catch (error) {
         if (error.name !== "AbortError") {
           console.error("Failed to load sale:", error);
-          setLoadError(error.message || "Failed to load sale.");
+          setLoadError(error.message || t("editSale.failedLoadSale"));
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -124,7 +144,7 @@ const EditSale = () => {
     loadSale();
 
     return () => controller.abort();
-  }, [id]);
+  }, [id, t]);
 
   const subtotal = useMemo(
     () =>
@@ -160,22 +180,22 @@ const EditSale = () => {
     event.preventDefault();
 
     if (!sale) {
-      toast.error("Sale data has not loaded.");
+      toast.error(t("editSale.saleNotLoaded"));
       return;
     }
 
     if (!customerName.trim()) {
-      toast.error("Please enter the customer name.");
+      toast.error(t("editSale.enterCustomerName"));
       return;
     }
 
     if (!paymentMethod) {
-      toast.error("Please select a payment method.");
+      toast.error(t("editSale.selectPaymentMethod"));
       return;
     }
 
     if (items.length === 0) {
-      toast.error("This sale must contain at least one product.");
+      toast.error(t("editSale.atLeastOneProduct"));
       return;
     }
 
@@ -190,17 +210,17 @@ const EditSale = () => {
           Number(item.productId) < 1,
       )
     ) {
-      toast.error("Each item must have a valid product, quantity, and price.");
+      toast.error(t("editSale.invalidProductDetails"));
       return;
     }
 
     if (discountAmount > subtotal) {
-      toast.error("Discount cannot be greater than the subtotal.");
+      toast.error(t("editSale.discountTooHigh"));
       return;
     }
 
     if (paid > total) {
-      toast.error("Paid amount cannot be greater than the total.");
+      toast.error(t("editSale.paidAmountTooHigh"));
       return;
     }
 
@@ -233,11 +253,11 @@ const EditSale = () => {
         throw new Error(await getErrorMessage(response));
       }
 
-      toast.success("Sale updated successfully.");
+      toast.success(t("editSale.saleUpdated"));
       navigate("/dashboard/sales");
     } catch (error) {
       console.error("Failed to update sale:", error);
-      toast.error(error.message || "Failed to update sale.");
+      toast.error(error.message || t("editSale.failedUpdateSale"));
     } finally {
       setSaving(false);
     }
@@ -248,7 +268,7 @@ const EditSale = () => {
       <div className="flex min-h-[60vh] items-center justify-center bg-slate-50 p-6">
         <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
           <LoaderCircle className="animate-spin" size={20} />
-          Loading sale details...
+          {t("editSale.loadingDetails")}
         </div>
       </div>
     );
@@ -259,24 +279,27 @@ const EditSale = () => {
       <div className="min-h-[60vh] bg-slate-50 p-4 sm:p-6">
         <div className="mx-auto max-w-3xl rounded-2xl border border-red-200 bg-white p-6 shadow-sm">
           <h1 className="text-xl font-bold text-slate-900">
-            Unable to load sale
+            {t("editSale.unableToLoad")}
           </h1>
+
           <p className="mt-2 text-sm text-red-600">
-            {loadError || "The requested sale was not found."}
+            {loadError || t("editSale.saleNotFound")}
           </p>
+
           <div className="mt-5 flex flex-wrap gap-3">
             <button
               type="button"
               onClick={() => window.location.reload()}
               className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
             >
-              Try Again
+              {t("editSale.tryAgain")}
             </button>
+
             <Link
               to="/dashboard/sales"
               className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
             >
-              Back to Sales
+              {t("editSale.backToSales")}
             </Link>
           </div>
         </div>
@@ -294,22 +317,25 @@ const EditSale = () => {
             className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-blue-600"
           >
             <ArrowLeft size={17} />
-            Back to Sales
+            {t("editSale.backToSales")}
           </Link>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-medium text-slate-500">
-                Sales Management
+                {t("editSale.salesManagement")}
               </p>
+
               <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-                Edit Sale
+                {t("editSale.title")}
               </h1>
+
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                Correct customer, payment, and sold product information.
+                {t("editSale.description")}
               </p>
+
               <p className="mt-1 text-xs font-medium text-slate-400">
-                Sale number: {sale.sale_number || sale.id}
+                {t("editSale.saleNumber")}: {sale.sale_number || sale.id}
               </p>
             </div>
 
@@ -326,12 +352,14 @@ const EditSale = () => {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
                 <UserRound size={19} />
               </div>
+
               <div>
                 <h2 className="text-lg font-bold text-slate-950">
-                  Customer Information
+                  {t("editSale.customerInformation")}
                 </h2>
+
                 <p className="text-sm text-slate-500">
-                  Update the customer's information.
+                  {t("editSale.updateCustomerInformation")}
                 </p>
               </div>
             </div>
@@ -339,13 +367,14 @@ const EditSale = () => {
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Customer Name
+                  {t("editSale.customerName")}
                 </label>
+
                 <input
                   type="text"
                   value={customerName}
                   onChange={(event) => setCustomerName(event.target.value)}
-                  placeholder="Enter customer name"
+                  placeholder={t("editSale.enterCustomerName")}
                   required
                   className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                 />
@@ -353,13 +382,14 @@ const EditSale = () => {
 
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Customer Phone
+                  {t("editSale.customerPhone")}
                 </label>
+
                 <input
                   type="text"
                   value={customerPhone}
                   onChange={(event) => setCustomerPhone(event.target.value)}
-                  placeholder="Enter customer phone"
+                  placeholder={t("editSale.enterCustomerPhone")}
                   className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                 />
               </div>
@@ -372,12 +402,14 @@ const EditSale = () => {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
                 <CalendarDays size={19} />
               </div>
+
               <div>
                 <h2 className="text-lg font-bold text-slate-950">
-                  Sale Information
+                  {t("editSale.saleInformation")}
                 </h2>
+
                 <p className="text-sm text-slate-500">
-                  Review the date and payment method.
+                  {t("editSale.reviewDatePayment")}
                 </p>
               </div>
             </div>
@@ -385,34 +417,38 @@ const EditSale = () => {
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Sale Date
+                  {t("editSale.saleDate")}
                 </label>
+
                 <input
                   type="date"
                   value={saleDate}
                   readOnly
                   className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 outline-none"
                 />
+
                 <p className="mt-1 text-xs text-slate-400">
-                  The date is displayed for reference and is not changed by this
-                  form.
+                  {t("editSale.dateReferenceOnly")}
                 </p>
               </div>
 
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Payment Method
+                  {t("editSale.paymentMethod")}
                 </label>
+
                 <select
                   value={paymentMethod}
                   onChange={(event) => setPaymentMethod(event.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                 >
-                  <option value="Cash">Cash</option>
-                  <option value="Card">Card</option>
-                  <option value="Bank">Bank</option>
-                  <option value="Credit">Credit</option>
-                  <option value="Mobile Money">Mobile Money</option>
+                  <option value="Cash">{t("editSale.cash")}</option>
+                  <option value="Card">{t("editSale.card")}</option>
+                  <option value="Bank">{t("editSale.bank")}</option>
+                  <option value="Credit">{t("editSale.credit")}</option>
+                  <option value="Mobile Money">
+                    {t("editSale.mobileMoney")}
+                  </option>
                 </select>
               </div>
             </div>
@@ -424,12 +460,14 @@ const EditSale = () => {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
                 <ReceiptText size={19} />
               </div>
+
               <div>
                 <h2 className="text-lg font-bold text-slate-950">
-                  Sold Products
+                  {t("editSale.soldProducts")}
                 </h2>
+
                 <p className="text-sm text-slate-500">
-                  Correct product quantities and prices.
+                  {t("editSale.correctProductDetails")}
                 </p>
               </div>
             </div>
@@ -444,16 +482,20 @@ const EditSale = () => {
                     <p className="text-sm font-bold text-slate-950">
                       {item.name}
                     </p>
+
                     <p className="mt-1 text-xs text-slate-500">
-                      Product {index + 1}
+                      {tx("editSale.productNumber", {
+                        number: index + 1,
+                      })}
                     </p>
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <label className="mb-2 block text-xs font-semibold text-slate-600">
-                        Quantity
+                        {t("editSale.quantity")}
                       </label>
+
                       <input
                         type="number"
                         min="1"
@@ -469,8 +511,9 @@ const EditSale = () => {
 
                     <div>
                       <label className="mb-2 block text-xs font-semibold text-slate-600">
-                        Selling Price
+                        {t("editSale.sellingPrice")}
                       </label>
+
                       <input
                         type="number"
                         min="0"
@@ -487,8 +530,9 @@ const EditSale = () => {
 
                   <div className="mt-4 flex items-center justify-between gap-4 border-t border-slate-200 pt-3">
                     <span className="text-sm text-slate-500">
-                      Product Total
+                      {t("editSale.productTotal")}
                     </span>
+
                     <span className="text-base font-bold text-slate-950">
                       ${formatMoney(Number(item.price) * Number(item.quantity))}
                     </span>
@@ -505,12 +549,14 @@ const EditSale = () => {
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-100 text-purple-700">
                   <CreditCard size={19} />
                 </div>
+
                 <div>
                   <h2 className="text-lg font-bold text-slate-950">
-                    Payment Details
+                    {t("editSale.paymentDetails")}
                   </h2>
+
                   <p className="text-sm text-slate-500">
-                    Correct discount and paid amount.
+                    {t("editSale.correctPaymentDetails")}
                   </p>
                 </div>
               </div>
@@ -518,8 +564,9 @@ const EditSale = () => {
               <div className="space-y-5">
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-slate-700">
-                    Discount
+                    {t("editSale.discount")}
                   </label>
+
                   <input
                     type="number"
                     min="0"
@@ -533,8 +580,9 @@ const EditSale = () => {
 
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-slate-700">
-                    Paid Amount
+                    {t("editSale.paidAmount")}
                   </label>
+
                   <input
                     type="number"
                     min="0"
@@ -550,19 +598,25 @@ const EditSale = () => {
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
               <h2 className="mb-5 text-lg font-bold text-slate-950">
-                Updated Summary
+                {t("editSale.updatedSummary")}
               </h2>
 
               <div className="space-y-4 text-sm">
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-slate-500">Subtotal</span>
+                  <span className="text-slate-500">
+                    {t("editSale.subtotal")}
+                  </span>
+
                   <span className="font-semibold text-slate-950">
                     ${formatMoney(subtotal)}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-slate-500">Discount</span>
+                  <span className="text-slate-500">
+                    {t("editSale.discount")}
+                  </span>
+
                   <span className="font-semibold text-red-600">
                     -${formatMoney(discountAmount)}
                   </span>
@@ -571,8 +625,9 @@ const EditSale = () => {
                 <div className="border-t border-slate-200 pt-4">
                   <div className="flex items-center justify-between gap-4">
                     <span className="text-base font-bold text-slate-950">
-                      Total
+                      {t("editSale.total")}
                     </span>
+
                     <span className="text-xl font-bold text-slate-950">
                       ${formatMoney(total)}
                     </span>
@@ -580,21 +635,28 @@ const EditSale = () => {
                 </div>
 
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-slate-500">Paid</span>
+                  <span className="text-slate-500">{t("editSale.paid")}</span>
+
                   <span className="font-semibold text-emerald-700">
                     ${formatMoney(paid)}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-slate-500">Remaining</span>
+                  <span className="text-slate-500">
+                    {t("editSale.remaining")}
+                  </span>
+
                   <span className="font-bold text-red-600">
                     ${formatMoney(remaining)}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between gap-4 border-t border-slate-100 pt-4">
-                  <span className="text-slate-500">Payment Status</span>
+                  <span className="text-slate-500">
+                    {t("editSale.paymentStatus")}
+                  </span>
+
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-bold ${
                       remaining === 0
@@ -604,7 +666,11 @@ const EditSale = () => {
                           : "bg-red-100 text-red-700"
                     }`}
                   >
-                    {remaining === 0 ? "Paid" : paid > 0 ? "Partial" : "Unpaid"}
+                    {remaining === 0
+                      ? t("editSale.paidStatus")
+                      : paid > 0
+                        ? t("editSale.partialStatus")
+                        : t("editSale.unpaidStatus")}
                   </span>
                 </div>
               </div>
@@ -617,7 +683,7 @@ const EditSale = () => {
               to="/dashboard/sales"
               className="rounded-xl border border-slate-200 bg-white px-6 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
             >
-              Cancel
+              {t("editSale.cancel")}
             </Link>
 
             <button
@@ -628,12 +694,12 @@ const EditSale = () => {
               {saving ? (
                 <>
                   <LoaderCircle size={18} className="animate-spin" />
-                  Saving...
+                  {t("editSale.saving")}
                 </>
               ) : (
                 <>
                   <Save size={18} />
-                  Save Changes
+                  {t("editSale.saveChanges")}
                 </>
               )}
             </button>

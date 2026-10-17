@@ -14,6 +14,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { useLanguage } from "../context/LanguageContext";
 
 const API_URL = `${import.meta.env.VITE_API_URL}/api`;
 
@@ -27,6 +28,13 @@ const emptyForm = {
 };
 
 const Suppliers = () => {
+  const { t } = useLanguage();
+
+  const tr = (key, fallback) => {
+    const translated = t(key);
+    return translated && translated !== key ? translated : fallback;
+  };
+
   const [suppliers, setSuppliers] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -48,12 +56,17 @@ const Suppliers = () => {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.message || "Failed to load suppliers.");
+        throw new Error(
+          data.message ||
+            tr("suppliers.loadError", "Could not load suppliers."),
+        );
       }
 
       setSuppliers(data.suppliers || []);
     } catch (error) {
-      toast.error(error.message || "Could not load suppliers.");
+      toast.error(
+        error.message || tr("suppliers.loadError", "Could not load suppliers."),
+      );
     } finally {
       setLoading(false);
     }
@@ -105,7 +118,7 @@ const Suppliers = () => {
     event.preventDefault();
 
     if (!form.name.trim()) {
-      toast.error("Supplier name is required.");
+      toast.error(tr("suppliers.nameRequired", "Supplier name is required."));
       return;
     }
 
@@ -138,14 +151,16 @@ const Suppliers = () => {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.message || "Failed to save supplier.");
+        throw new Error(
+          data.message || tr("suppliers.saveError", "Could not save supplier."),
+        );
       }
 
       toast.success(
         data.message ||
           (isEditing
-            ? "Supplier updated successfully."
-            : "Supplier added successfully."),
+            ? tr("suppliers.updated", "Supplier updated successfully.")
+            : tr("suppliers.added", "Supplier added successfully.")),
       );
 
       setModalOpen(false);
@@ -154,16 +169,21 @@ const Suppliers = () => {
 
       await fetchSuppliers();
     } catch (error) {
-      toast.error(error.message || "Could not save supplier.");
+      toast.error(
+        error.message || tr("suppliers.saveError", "Could not save supplier."),
+      );
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (supplier) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${supplier.name}"?`,
-    );
+    const confirmationMessage = tr(
+      "suppliers.confirmDelete",
+      'Are you sure you want to delete "{{name}}"?',
+    ).replace("{{name}}", supplier.name);
+
+    const confirmed = window.confirm(confirmationMessage);
 
     if (!confirmed) return;
 
@@ -178,16 +198,25 @@ const Suppliers = () => {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.message || "Failed to delete supplier.");
+        throw new Error(
+          data.message ||
+            tr("suppliers.deleteError", "Could not delete supplier."),
+        );
       }
 
-      toast.success(data.message || "Supplier deleted successfully.");
+      toast.success(
+        data.message ||
+          tr("suppliers.deleted", "Supplier deleted successfully."),
+      );
 
       setSuppliers((previous) =>
         previous.filter((item) => item.id !== supplier.id),
       );
     } catch (error) {
-      toast.error(error.message || "Could not delete supplier.");
+      toast.error(
+        error.message ||
+          tr("suppliers.deleteError", "Could not delete supplier."),
+      );
     } finally {
       setDeletingId(null);
     }
@@ -221,16 +250,19 @@ const Suppliers = () => {
             <div className="mb-2 flex items-center gap-2 text-blue-600">
               <Truck size={20} />
               <span className="text-sm font-semibold">
-                Inventory Management
+                {tr("suppliers.eyebrow", "Inventory Management")}
               </span>
             </div>
 
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-              Suppliers
+              {tr("suppliers.title", "Suppliers")}
             </h1>
 
             <p className="mt-2 text-sm text-slate-500">
-              Manage the people and companies supplying your products.
+              {tr(
+                "suppliers.subtitle",
+                "Manage the people and companies supplying your products.",
+              )}
             </p>
           </div>
 
@@ -240,7 +272,7 @@ const Suppliers = () => {
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
           >
             <Plus size={18} />
-            Add Supplier
+            {tr("suppliers.addSupplier", "Add Supplier")}
           </button>
         </div>
 
@@ -250,7 +282,7 @@ const Suppliers = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-500">
-                  Total Suppliers
+                  {tr("suppliers.totalSuppliers", "Total Suppliers")}
                 </p>
                 <p className="mt-2 text-3xl font-bold text-slate-900">
                   {suppliers.length}
@@ -267,7 +299,7 @@ const Suppliers = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-500">
-                  Search Results
+                  {tr("suppliers.searchResults", "Search Results")}
                 </p>
                 <p className="mt-2 text-3xl font-bold text-slate-900">
                   {filteredSuppliers.length}
@@ -294,7 +326,10 @@ const Suppliers = () => {
                 type="search"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search name, company, phone..."
+                placeholder={tr(
+                  "suppliers.searchPlaceholder",
+                  "Search name, company, or phone...",
+                )}
                 className={`${inputClass} pl-10`}
               />
             </div>
@@ -306,7 +341,7 @@ const Suppliers = () => {
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
             >
               <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-              Refresh
+              {tr("suppliers.refresh", "Refresh")}
             </button>
           </div>
         </div>
@@ -314,16 +349,23 @@ const Suppliers = () => {
         {/* Supplier List */}
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-100 px-5 py-4">
-            <h2 className="font-semibold text-slate-900">Supplier Directory</h2>
+            <h2 className="font-semibold text-slate-900">
+              {tr("suppliers.directory", "Supplier Directory")}
+            </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Your saved supplier information.
+              {tr(
+                "suppliers.directoryDescription",
+                "Your saved supplier information.",
+              )}
             </p>
           </div>
 
           {loading ? (
             <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-slate-500">
               <LoaderCircle size={30} className="animate-spin text-blue-600" />
-              <p className="text-sm">Loading suppliers...</p>
+              <p className="text-sm">
+                {tr("suppliers.loading", "Loading suppliers...")}
+              </p>
             </div>
           ) : filteredSuppliers.length === 0 ? (
             <div className="flex min-h-64 flex-col items-center justify-center px-5 text-center">
@@ -332,13 +374,18 @@ const Suppliers = () => {
               </div>
 
               <h3 className="font-semibold text-slate-900">
-                {search ? "No suppliers found" : "No suppliers yet"}
+                {search
+                  ? tr("suppliers.noResults", "No suppliers found")
+                  : tr("suppliers.noSuppliers", "No suppliers yet")}
               </h3>
 
               <p className="mt-2 max-w-sm text-sm text-slate-500">
                 {search
-                  ? "Try another search term."
-                  : "Add your first supplier to start organizing your inventory."}
+                  ? tr("suppliers.tryAnotherSearch", "Try another search term.")
+                  : tr(
+                      "suppliers.emptyDescription",
+                      "Add your first supplier to start organizing your inventory.",
+                    )}
               </p>
 
               {!search && (
@@ -348,7 +395,7 @@ const Suppliers = () => {
                   className="mt-5 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
                 >
                   <Plus size={17} />
-                  Add First Supplier
+                  {tr("suppliers.addFirst", "Add First Supplier")}
                 </button>
               )}
             </div>
@@ -368,7 +415,8 @@ const Suppliers = () => {
                           {supplier.name}
                         </h3>
                         <p className="mt-1 break-words text-sm text-slate-500">
-                          {supplier.company_name || "Independent supplier"}
+                          {supplier.company_name ||
+                            tr("suppliers.independent", "Independent supplier")}
                         </p>
                       </div>
                     </div>
@@ -404,7 +452,7 @@ const Suppliers = () => {
                         className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
                       >
                         <Pencil size={15} />
-                        Edit
+                        {tr("suppliers.edit", "Edit")}
                       </button>
 
                       <button
@@ -418,7 +466,7 @@ const Suppliers = () => {
                         ) : (
                           <Trash2 size={15} />
                         )}
-                        Delete
+                        {tr("suppliers.delete", "Delete")}
                       </button>
                     </div>
                   </div>
@@ -430,10 +478,18 @@ const Suppliers = () => {
                 <table className="w-full text-left">
                   <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500">
                     <tr>
-                      <th className="px-5 py-4">Supplier</th>
-                      <th className="px-5 py-4">Contact</th>
-                      <th className="px-5 py-4">Address</th>
-                      <th className="px-5 py-4 text-right">Actions</th>
+                      <th className="px-5 py-4">
+                        {tr("suppliers.supplier", "Supplier")}
+                      </th>
+                      <th className="px-5 py-4">
+                        {tr("suppliers.contact", "Contact")}
+                      </th>
+                      <th className="px-5 py-4">
+                        {tr("suppliers.address", "Address")}
+                      </th>
+                      <th className="px-5 py-4 text-right">
+                        {tr("suppliers.actions", "Actions")}
+                      </th>
                     </tr>
                   </thead>
 
@@ -455,7 +511,10 @@ const Suppliers = () => {
                               </p>
                               <p className="mt-1 text-sm text-slate-500">
                                 {supplier.company_name ||
-                                  "Independent supplier"}
+                                  tr(
+                                    "suppliers.independent",
+                                    "Independent supplier",
+                                  )}
                               </p>
                             </div>
                           </div>
@@ -487,7 +546,10 @@ const Suppliers = () => {
 
                             {!supplier.phone && !supplier.email && (
                               <span className="text-sm text-slate-400">
-                                No contact details
+                                {tr(
+                                  "suppliers.noContact",
+                                  "No contact details",
+                                )}
                               </span>
                             )}
                           </div>
@@ -512,7 +574,10 @@ const Suppliers = () => {
                             <button
                               type="button"
                               onClick={() => openEditModal(supplier)}
-                              title="Edit supplier"
+                              title={tr(
+                                "suppliers.editSupplier",
+                                "Edit supplier",
+                              )}
                               className="rounded-lg border border-slate-200 p-2.5 text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
                             >
                               <Pencil size={16} />
@@ -522,7 +587,7 @@ const Suppliers = () => {
                               type="button"
                               onClick={() => handleDelete(supplier)}
                               disabled={deletingId === supplier.id}
-                              title="Delete supplier"
+                              title={tr("suppliers.delete", "Delete supplier")}
                               className="rounded-lg border border-red-100 p-2.5 text-red-500 transition hover:bg-red-50 disabled:opacity-50"
                             >
                               {deletingId === supplier.id ? (
@@ -558,12 +623,20 @@ const Suppliers = () => {
             <div className="flex items-start justify-between border-b border-slate-100 px-5 py-4 sm:px-6">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">
-                  {editingSupplier ? "Edit Supplier" : "Add New Supplier"}
+                  {editingSupplier
+                    ? tr("suppliers.editSupplier", "Edit Supplier")
+                    : tr("suppliers.addNewSupplier", "Add New Supplier")}
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
                   {editingSupplier
-                    ? "Update the supplier's information."
-                    : "Enter the details of your new supplier."}
+                    ? tr(
+                        "suppliers.updateDescription",
+                        "Update the supplier's information.",
+                      )
+                    : tr(
+                        "suppliers.createDescription",
+                        "Enter the details of your new supplier.",
+                      )}
                 </p>
               </div>
 
@@ -572,7 +645,7 @@ const Suppliers = () => {
                 onClick={closeModal}
                 disabled={saving}
                 className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
-                aria-label="Close modal"
+                aria-label={tr("suppliers.closeModal", "Close modal")}
               >
                 <X size={20} />
               </button>
@@ -582,7 +655,8 @@ const Suppliers = () => {
               <div className="grid max-h-[65vh] grid-cols-1 gap-4 overflow-y-auto p-5 sm:grid-cols-2 sm:p-6">
                 <div>
                   <label htmlFor="name" className={labelClass}>
-                    Supplier Name <span className="text-red-500">*</span>
+                    {tr("suppliers.supplierName", "Supplier Name")}{" "}
+                    <span className="text-red-500">*</span>
                   </label>
                   <input
                     id="name"
@@ -590,7 +664,10 @@ const Suppliers = () => {
                     value={form.name}
                     onChange={handleChange}
                     className={inputClass}
-                    placeholder="Enter supplier name"
+                    placeholder={tr(
+                      "suppliers.namePlaceholder",
+                      "Enter supplier name",
+                    )}
                     required
                     maxLength={150}
                   />
@@ -598,7 +675,7 @@ const Suppliers = () => {
 
                 <div>
                   <label htmlFor="company_name" className={labelClass}>
-                    Company Name
+                    {tr("suppliers.companyName", "Company Name")}
                   </label>
                   <input
                     id="company_name"
@@ -606,14 +683,17 @@ const Suppliers = () => {
                     value={form.company_name}
                     onChange={handleChange}
                     className={inputClass}
-                    placeholder="Enter company name"
+                    placeholder={tr(
+                      "suppliers.companyPlaceholder",
+                      "Enter company name",
+                    )}
                     maxLength={150}
                   />
                 </div>
 
                 <div>
                   <label htmlFor="phone" className={labelClass}>
-                    Phone Number
+                    {tr("suppliers.phone", "Phone Number")}
                   </label>
                   <input
                     id="phone"
@@ -622,14 +702,17 @@ const Suppliers = () => {
                     value={form.phone}
                     onChange={handleChange}
                     className={inputClass}
-                    placeholder="Enter phone number"
+                    placeholder={tr(
+                      "suppliers.phonePlaceholder",
+                      "Enter phone number",
+                    )}
                     maxLength={30}
                   />
                 </div>
 
                 <div>
                   <label htmlFor="email" className={labelClass}>
-                    Email Address
+                    {tr("suppliers.email", "Email Address")}
                   </label>
                   <input
                     id="email"
@@ -645,7 +728,7 @@ const Suppliers = () => {
 
                 <div className="sm:col-span-2">
                   <label htmlFor="address" className={labelClass}>
-                    Address
+                    {tr("suppliers.address", "Address")}
                   </label>
                   <input
                     id="address"
@@ -653,13 +736,16 @@ const Suppliers = () => {
                     value={form.address}
                     onChange={handleChange}
                     className={inputClass}
-                    placeholder="Supplier's address"
+                    placeholder={tr(
+                      "suppliers.addressPlaceholder",
+                      "Supplier's address",
+                    )}
                   />
                 </div>
 
                 <div className="sm:col-span-2">
                   <label htmlFor="notes" className={labelClass}>
-                    Notes
+                    {tr("suppliers.notes", "Notes")}
                   </label>
                   <textarea
                     id="notes"
@@ -667,7 +753,10 @@ const Suppliers = () => {
                     value={form.notes}
                     onChange={handleChange}
                     className={`${inputClass} min-h-24 resize-y`}
-                    placeholder="Additional information about this supplier"
+                    placeholder={tr(
+                      "suppliers.notesPlaceholder",
+                      "Additional information about this supplier",
+                    )}
                   />
                 </div>
               </div>
@@ -679,7 +768,7 @@ const Suppliers = () => {
                   disabled={saving}
                   className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
                 >
-                  Cancel
+                  {tr("suppliers.cancel", "Cancel")}
                 </button>
 
                 <button
@@ -691,10 +780,10 @@ const Suppliers = () => {
                     <LoaderCircle size={17} className="animate-spin" />
                   )}
                   {saving
-                    ? "Saving..."
+                    ? tr("suppliers.saving", "Saving...")
                     : editingSupplier
-                      ? "Save Changes"
-                      : "Add Supplier"}
+                      ? tr("suppliers.saveChanges", "Save Changes")
+                      : tr("suppliers.addSupplier", "Add Supplier")}
                 </button>
               </div>
             </form>

@@ -22,13 +22,19 @@ import {
   ArrowDownToLine,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useLanguage } from "../../context/LanguageContext";
 
 const formatMoney = (amount) => {
   return `${Number(amount).toLocaleString()} AFN`;
 };
 
 const formatDate = (date) => {
-  return new Date(`${date}T00:00:00`).toLocaleDateString("en-US", {
+  if (!date) return "—";
+  const normalized = normalizeDate(date);
+  if (!normalized) return "—";
+  const parsedDate = new Date(`${normalized}T00:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) return "—";
+  return parsedDate.toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -80,6 +86,12 @@ const getPurchaseIcon = (status) => {
   return <XCircle size={14} />;
 };
 
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:3000"
+).replace(/\/+$/, "");
+
+const API_URL = `${API_BASE_URL}/api`;
+
 const Purchases = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
@@ -87,7 +99,8 @@ const Purchases = () => {
   const [paymentFilter, setPaymentFilter] = useState("All");
   const [selectedPurchase, setSelectedPurchase] = useState(null);
 
-  const API_URL = `${import.meta.env.VITE_API_URL}/api`;
+  const { t, isRTL } = useLanguage();
+  const tr = (key, fallback) => t(`purchases.${key}`, fallback);
 
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -131,10 +144,17 @@ const Purchases = () => {
         credentials: "include",
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type");
+      const data = contentType?.includes("application/json")
+        ? await response.json()
+        : await response.text();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to load purchases.");
+        throw new Error(
+          typeof data === "string"
+            ? data || "Failed to load purchases."
+            : data.message || "Failed to load purchases.",
+        );
       }
 
       const formattedPurchases = (data.purchases || []).map((purchase) => {
@@ -157,9 +177,9 @@ const Purchases = () => {
           purchaseDate: normalizeDate(purchase.purchase_date),
           items: products.reduce((sum, item) => sum + item.quantity, 0),
           itemTypes: products.length,
-          totalAmount: Number(purchase.total_amount),
-          paidAmount: Number(purchase.paid_amount),
-          dueAmount: Number(purchase.due_amount),
+          totalAmount: Number(purchase.total_amount || 0),
+          paidAmount: Number(purchase.paid_amount || 0),
+          dueAmount: Number(purchase.due_amount || 0),
           paymentStatus: purchase.payment_status,
           status: purchase.status,
           products,
@@ -609,10 +629,13 @@ const Purchases = () => {
   };
 
   return (
-    <div className="min-w-0 space-y-6">
+    <div
+      dir={isRTL ? "rtl" : "ltr"}
+      className={`min-w-0 space-y-6 ${isRTL ? "text-right" : "text-left"}`}
+    >
       {loading && (
         <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
-          Loading purchases...
+          {tr("loading", "Loading purchases...")}
         </div>
       )}
 
@@ -625,7 +648,7 @@ const Purchases = () => {
             onClick={fetchPurchases}
             className="mt-3 rounded-lg bg-rose-600 px-4 py-2 font-semibold text-white hover:bg-rose-700"
           >
-            Try again
+            {tr("tryAgain", "Try again")}
           </button>
         </div>
       )}
@@ -638,17 +661,22 @@ const Purchases = () => {
         <div>
           <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
             <Package size={16} />
-            <span>Inventory Management</span>
+            <span>{tr("inventoryManagement", "Inventory Management")}</span>
             <span>/</span>
-            <span className="text-slate-700">Purchases</span>
+            <span className="text-slate-700">
+              {tr("purchases", "Purchases")}
+            </span>
           </div>
 
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Purchases
+            {tr("purchases", "Purchases")}
           </h1>
 
           <p className="mt-1 text-sm text-slate-500 sm:text-base">
-            Manage supplier purchases and track your purchase payments.
+            {tr(
+              "description",
+              "Manage supplier purchases and track your purchase payments.",
+            )}
           </p>
         </div>
 
@@ -657,19 +685,19 @@ const Purchases = () => {
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
         >
           <Plus size={18} />
-          New Purchase
+          {tr("newPurchase", "New Purchase")}
         </Link>
       </motion.div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
-          title="Total Purchases"
+          title={tr("totalPurchases", "Total Purchases")}
           value={formatMoney(totalPurchases)}
           description={
             selectedDate
-              ? `Purchases on ${formatDate(selectedDate)}`
-              : "All purchase records"
+              ? `${tr("purchasesOn", "Purchases on")} ${formatDate(selectedDate)}`
+              : tr("allPurchaseRecords", "All purchase records")
           }
           icon={<ReceiptText size={21} />}
           iconBackground="bg-blue-100"
@@ -677,27 +705,33 @@ const Purchases = () => {
         />
 
         <SummaryCard
-          title="Paid Amount"
+          title={tr("paidAmount", "Paid Amount")}
           value={formatMoney(totalPaid)}
-          description="Amount paid to suppliers"
+          description={tr("amountPaidToSuppliers", "Amount paid to suppliers")}
           icon={<Wallet size={21} />}
           iconBackground="bg-emerald-100"
           iconColor="text-emerald-600"
         />
 
         <SummaryCard
-          title="Total Due"
+          title={tr("totalDue", "Total Due")}
           value={formatMoney(totalDue)}
-          description="Outstanding supplier payments"
+          description={tr(
+            "outstandingSupplierPayments",
+            "Outstanding supplier payments",
+          )}
           icon={<Truck size={21} />}
           iconBackground="bg-amber-100"
           iconColor="text-amber-600"
         />
 
         <SummaryCard
-          title="Received Purchases"
+          title={tr("receivedPurchases", "Received Purchases")}
           value={receivedPurchases}
-          description="Purchases successfully received"
+          description={tr(
+            "successfullyReceived",
+            "Purchases successfully received",
+          )}
           icon={<ArrowDownToLine size={21} />}
           iconBackground="bg-violet-100"
           iconColor="text-violet-600"
@@ -712,14 +746,16 @@ const Purchases = () => {
       >
         <div className="mb-4 flex items-center gap-2">
           <Filter size={18} className="text-blue-600" />
-          <h2 className="font-bold text-slate-900">Purchase Filters</h2>
+          <h2 className="font-bold text-slate-900">
+            {tr("filters", "Purchase Filters")}
+          </h2>
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {/* Search */}
           <div>
             <label className="mb-2 block text-sm font-semibold text-slate-700">
-              Search
+              {tr("search", "Search")}
             </label>
 
             <div className="relative">
@@ -732,7 +768,10 @@ const Purchases = () => {
                 type="text"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search purchase or product..."
+                placeholder={tr(
+                  "searchPlaceholder",
+                  "Search purchase or product...",
+                )}
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 pl-10 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
               />
             </div>
@@ -741,7 +780,7 @@ const Purchases = () => {
           {/* Date */}
           <div>
             <label className="mb-2 block text-sm font-semibold text-slate-700">
-              Purchase Date
+              {tr("purchaseDate", "Purchase Date")}
             </label>
 
             <div className="relative">
@@ -761,18 +800,28 @@ const Purchases = () => {
 
           {/* Purchase Status */}
           <FilterSelect
-            label="Purchase Status"
+            label={tr("purchaseStatus", "Purchase Status")}
             value={statusFilter}
             onChange={setStatusFilter}
-            options={["All", "Received", "Pending", "Cancelled"]}
+            options={[
+              { value: "All", label: tr("all", "All") },
+              { value: "Received", label: tr("received", "Received") },
+              { value: "Pending", label: tr("pending", "Pending") },
+              { value: "Cancelled", label: tr("cancelled", "Cancelled") },
+            ]}
           />
 
           {/* Payment Status */}
           <FilterSelect
-            label="Payment Status"
+            label={tr("paymentStatus", "Payment Status")}
             value={paymentFilter}
             onChange={setPaymentFilter}
-            options={["All", "Paid", "Partial", "Unpaid"]}
+            options={[
+              { value: "All", label: tr("all", "All") },
+              { value: "Paid", label: tr("paid", "Paid") },
+              { value: "Partial", label: tr("partial", "Partial") },
+              { value: "Unpaid", label: tr("unpaid", "Unpaid") },
+            ]}
           />
         </div>
       </motion.div>
@@ -785,11 +834,15 @@ const Purchases = () => {
       >
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <div>
-            <h2 className="font-bold text-slate-900">Purchase Records</h2>
+            <h2 className="font-bold text-slate-900">
+              {tr("records", "Purchase Records")}
+            </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              {filteredPurchases.length} purchase
-              {filteredPurchases.length !== 1 ? "s" : ""} found.
+              {filteredPurchases.length}{" "}
+              {filteredPurchases.length === 1
+                ? tr("singlePurchaseFound", "purchase found")
+                : tr("purchaseCount", "purchases found")}
             </p>
           </div>
         </div>
@@ -801,26 +854,42 @@ const Purchases = () => {
             <table className="w-full min-w-[1250px] text-left">
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="px-5 py-4 font-semibold">Purchase</th>
+                  <th className="px-5 py-4 font-semibold">
+                    {tr("purchase", "Purchase")}
+                  </th>
 
                   {/* NEW: Product */}
-                  <th className="px-5 py-4 font-semibold">Purchased Product</th>
+                  <th className="px-5 py-4 font-semibold">
+                    {tr("purchasedProduct", "Purchased Product")}
+                  </th>
 
                   {/* NEW: Unit Price */}
-                  <th className="px-5 py-4 font-semibold">Unit Price</th>
+                  <th className="px-5 py-4 font-semibold">
+                    {tr("unitPrice", "Unit Price")}
+                  </th>
 
-                  <th className="px-5 py-4 font-semibold">Date</th>
+                  <th className="px-5 py-4 font-semibold">
+                    {tr("date", "Date")}
+                  </th>
 
-                  <th className="px-5 py-4 font-semibold">Total Units</th>
+                  <th className="px-5 py-4 font-semibold">
+                    {tr("totalUnits", "Total Units")}
+                  </th>
 
-                  <th className="px-5 py-4 font-semibold">Payment</th>
+                  <th className="px-5 py-4 font-semibold">
+                    {tr("payment", "Payment")}
+                  </th>
 
-                  <th className="px-5 py-4 font-semibold">Status</th>
-
-                  <th className="px-5 py-4 text-right font-semibold">Total</th>
+                  <th className="px-5 py-4 font-semibold">
+                    {tr("status", "Status")}
+                  </th>
 
                   <th className="px-5 py-4 text-right font-semibold">
-                    Actions
+                    {tr("total", "Total")}
+                  </th>
+
+                  <th className="px-5 py-4 text-right font-semibold">
+                    {tr("actions", "Actions")}
                   </th>
                 </tr>
               </thead>
@@ -860,7 +929,7 @@ const Purchases = () => {
                               </p>
 
                               <p className="mt-0.5 text-xs text-slate-500">
-                                Qty: {product.quantity}
+                                {tr("quantity", "Quantity")} {product.quantity}
                               </p>
                             </div>
                           </div>
@@ -902,7 +971,7 @@ const Purchases = () => {
 
                       {purchase.dueAmount > 0 && (
                         <div className="mt-1 text-xs text-rose-600">
-                          Due: {formatMoney(purchase.dueAmount)}
+                          {tr("due", "Due")}: {formatMoney(purchase.dueAmount)}
                         </div>
                       )}
 
@@ -911,6 +980,10 @@ const Purchases = () => {
                           value={purchase.paymentStatus}
                           styles={paymentStatusStyles}
                           icon={getPaymentIcon(purchase.paymentStatus)}
+                          label={tr(
+                            purchase.status.toLowerCase(),
+                            purchase.status,
+                          )}
                         />
                       </div>
                     </td>
@@ -921,6 +994,10 @@ const Purchases = () => {
                         value={purchase.status}
                         styles={purchaseStatusStyles}
                         icon={getPurchaseIcon(purchase.status)}
+                        label={tr(
+                          purchase.paymentStatus.toLowerCase(),
+                          purchase.paymentStatus,
+                        )}
                       />
                     </td>
 
@@ -977,10 +1054,12 @@ const Purchases = () => {
       >
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-bold text-slate-900">Purchase Records</h2>
+            <h2 className="font-bold text-slate-900">
+              {tr("purchaseRecords", "Purchase Records")}
+            </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              {filteredPurchases.length} purchase
+              {filteredPurchases.length} {tr("purchase", "Purchase")}
               {filteredPurchases.length !== 1 ? "s" : ""} found.
             </p>
           </div>
@@ -1002,7 +1081,7 @@ const Purchases = () => {
                   <p className="font-bold text-slate-900">{purchase.id}</p>
 
                   <p className="mt-1 text-xs text-slate-500">
-                    Invoice: {purchase.invoiceNumber}
+                    {tr("invoice", "Invoice")}: {purchase.invoiceNumber}
                   </p>
                 </div>
 
@@ -1016,7 +1095,7 @@ const Purchases = () => {
               {/* Products */}
               <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-3">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Purchased Products
+                  {tr("purchasedProduct", "Purchased Product")}
                 </p>
 
                 <div className="space-y-3">
@@ -1031,7 +1110,7 @@ const Purchases = () => {
                         </p>
 
                         <p className="mt-1 text-xs text-slate-500">
-                          Quantity: {product.quantity}
+                          {tr("quantity", "Quantity")}: {product.quantity}
                         </p>
                       </div>
 
@@ -1040,7 +1119,9 @@ const Purchases = () => {
                           {formatMoney(product.price)}
                         </p>
 
-                        <p className="mt-1 text-xs text-slate-500">per unit</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {tr("perUnit", "per unit")}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -1087,7 +1168,7 @@ const Purchases = () => {
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
                   <Eye size={16} />
-                  View
+                  {tr("view", "View")}
                 </button>
 
                 <button
@@ -1096,7 +1177,7 @@ const Purchases = () => {
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 px-3 py-2.5 text-sm font-semibold text-blue-600 transition hover:bg-blue-50"
                 >
                   <Pencil size={16} />
-                  Edit
+                  {tr("edit", "Edit")}
                 </button>
 
                 <button
@@ -1105,7 +1186,7 @@ const Purchases = () => {
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-200 px-3 py-2.5 text-sm font-semibold text-amber-600 transition hover:bg-amber-50"
                 >
                   <RefreshCw size={16} />
-                  Replace
+                  {tr("replace", "Replace")}
                 </button>
 
                 <button
@@ -1114,7 +1195,7 @@ const Purchases = () => {
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 px-3 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
                 >
                   <Undo2 size={16} />
-                  Return
+                  {tr("return", "Return")}
                 </button>
               </div>
             </motion.div>
@@ -1135,7 +1216,7 @@ const Purchases = () => {
               <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
-                    Purchase Details
+                    {tr("details", "Purchase Details")}
                   </p>
 
                   <h2 className="mt-1 text-xl font-bold text-slate-900">
@@ -1197,7 +1278,7 @@ const Purchases = () => {
                             </th>
 
                             <th className="px-4 py-3 font-semibold">
-                              Unit Price
+                              {tr("unitPrice", "Unit Price")}
                             </th>
 
                             <th className="px-4 py-3 text-right font-semibold">
@@ -1254,7 +1335,7 @@ const Purchases = () => {
                     className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 px-4 py-3 text-sm font-semibold text-blue-600 transition hover:bg-blue-50"
                   >
                     <Pencil size={17} />
-                    Edit Purchase
+                    {tr("editPurchase", "Edit Purchase")}
                   </button>
 
                   <button
@@ -1327,7 +1408,7 @@ const Purchases = () => {
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <label className="mb-2 block text-sm font-semibold text-slate-700">
-                        Supplier
+                        {tr("supplier", "Supplier")}
                       </label>
                       <select
                         required
@@ -1337,7 +1418,9 @@ const Purchases = () => {
                         }
                         className="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm outline-none focus:border-blue-500"
                       >
-                        <option value="">Select supplier</option>
+                        <option value="">
+                          {tr("selectSupplier", "Select supplier")}
+                        </option>
                         {suppliers.map((supplier) => (
                           <option key={supplier.id} value={supplier.id}>
                             {supplier.name}
@@ -1348,7 +1431,7 @@ const Purchases = () => {
 
                     <div>
                       <label className="mb-2 block text-sm font-semibold text-slate-700">
-                        Invoice Number
+                        {tr("invoiceNumber", "Invoice Number")}
                       </label>
                       <input
                         value={editingPurchase.invoiceNumber}
@@ -1356,7 +1439,7 @@ const Purchases = () => {
                           updateEditField("invoiceNumber", e.target.value)
                         }
                         className="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm outline-none focus:border-blue-500"
-                        placeholder="Invoice number"
+                        placeholder={tr("invoiceNumber", "Invoice Number")}
                       />
                     </div>
 
@@ -1402,7 +1485,7 @@ const Purchases = () => {
                   <div>
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <h3 className="font-bold text-slate-900">
-                        Purchase Items
+                        {tr("purchaseItems", "Purchase Items")}
                       </h3>
                       <button
                         type="button"
@@ -1410,7 +1493,7 @@ const Purchases = () => {
                         className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-100"
                       >
                         <Plus size={16} />
-                        Add item
+                        {tr("addItem", "Add item")}
                       </button>
                     </div>
 
@@ -1423,7 +1506,7 @@ const Purchases = () => {
                           <div className="grid grid-cols-1 gap-3 sm:grid-cols-12">
                             <div className="sm:col-span-5">
                               <label className="mb-1 block text-xs font-semibold text-slate-600">
-                                Item Name
+                                {tr("itemName", "Item Name")}
                               </label>
                               <input
                                 required
@@ -1505,7 +1588,7 @@ const Purchases = () => {
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <label className="mb-2 block text-sm font-semibold text-slate-700">
-                        Amount Paid (AFN)
+                        {tr("amountPaid", "Amount Paid (AFN)")}
                       </label>
                       <input
                         type="number"
@@ -1523,13 +1606,17 @@ const Purchases = () => {
 
                     <div className="rounded-xl bg-slate-50 p-4">
                       <div className="flex justify-between gap-3 text-sm">
-                        <span className="text-slate-600">Purchase total</span>
+                        <span className="text-slate-600">
+                          {tr("purchaseTotal", "Purchase total")}
+                        </span>
                         <span className="font-bold text-slate-900">
                           {formatMoney(editTotal)}
                         </span>
                       </div>
                       <div className="mt-2 flex justify-between gap-3 text-sm">
-                        <span className="text-slate-600">Remaining due</span>
+                        <span className="text-slate-600">
+                          {tr("remainingDue", "Remaining due")}
+                        </span>
                         <span className="font-bold text-rose-600">
                           {formatMoney(editDue)}
                         </span>
@@ -1547,7 +1634,7 @@ const Purchases = () => {
 
                   <div>
                     <label className="mb-2 block text-sm font-semibold text-slate-700">
-                      Notes
+                      {tr("notes", "Notes")}
                     </label>
                     <textarea
                       rows={3}
@@ -1566,14 +1653,16 @@ const Purchases = () => {
                     onClick={() => setEditingPurchase(null)}
                     className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                   >
-                    Cancel
+                    {tr("cancel", "Cancel")}
                   </button>
                   <button
                     type="submit"
                     disabled={savingEdit}
                     className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {savingEdit ? "Saving..." : "Save Changes"}
+                    {savingEdit
+                      ? tr("saving", "Saving...")
+                      : tr("saveChanges", "Save Changes")}
                   </button>
                 </div>
               </form>
@@ -1595,8 +1684,8 @@ const Purchases = () => {
                 <div>
                   <h2 className="text-xl font-bold text-slate-900">
                     {actionType === "replace"
-                      ? "Replace Purchase Item"
-                      : "Return Purchase Item"}
+                      ? tr("replaceItem", "Replace Purchase Item")
+                      : tr("returnItem", "Return Purchase Item")}
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
                     Purchase {actionPurchase.id}
@@ -1865,7 +1954,7 @@ const Purchases = () => {
 
                   <div>
                     <label className="mb-1 block text-sm font-semibold text-slate-700">
-                      Reason (optional)
+                      {tr("reason", "Reason (optional)")}
                     </label>
                     <textarea
                       rows={2}
@@ -1900,10 +1989,10 @@ const Purchases = () => {
                     }`}
                   >
                     {savingAction
-                      ? "Processing..."
+                      ? tr("processing", "Processing...")
                       : actionType === "replace"
-                        ? "Confirm Replacement"
-                        : "Confirm Return"}
+                        ? tr("confirmReplacement", "Confirm Replacement")
+                        : tr("confirmReturn", "Confirm Return")}
                   </button>
                 </div>
               </form>
@@ -1949,13 +2038,15 @@ const SummaryCard = ({
   );
 };
 
-const StatusBadge = ({ value, styles, icon }) => {
+const StatusBadge = ({ value, styles = {}, icon, label }) => {
+  const badgeStyle = styles[value] || "bg-slate-100 text-slate-700";
+
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${styles[value]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${badgeStyle}`}
     >
       {icon}
-      {value}
+      {label || value || "Unknown"}
     </span>
   );
 };
@@ -1984,24 +2075,34 @@ const FilterSelect = ({ label, value, onChange, options }) => {
         <select
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 pr-10 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
+          className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 pe-10 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
         >
-          {options.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
+          {options.map((option) => {
+            const optionValue =
+              typeof option === "string" ? option : option.value;
+
+            const optionLabel =
+              typeof option === "string" ? option : option.label;
+
+            return (
+              <option key={optionValue} value={optionValue}>
+                {optionLabel}
+              </option>
+            );
+          })}
         </select>
 
         <ChevronDown
           size={17}
-          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+          className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-slate-400 ${
+            // The direction is inherited from the page.
+            "end-3"
+          }`}
         />
       </div>
     </div>
   );
 };
-
 const MobileInfo = ({ label, value }) => {
   return (
     <div className="rounded-xl bg-slate-50 p-3">
@@ -2037,16 +2138,24 @@ const AmountBox = ({ label, value }) => {
 };
 
 const EmptyPurchases = () => {
+  const { t } = useLanguage();
+  const tr = (key, fallback) => t(`purchases.${key}`, fallback);
+
   return (
     <div className="px-5 py-14 text-center">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
         <Package size={25} />
       </div>
 
-      <h3 className="mt-4 font-semibold text-slate-900">No purchases found</h3>
+      <h3 className="mt-4 font-semibold text-slate-900">
+        {tr("noPurchases", "No purchases found")}
+      </h3>
 
       <p className="mt-1 text-sm text-slate-500">
-        There are no purchase records matching your filters.
+        {tr(
+          "noMatchingRecords",
+          "There are no purchase records matching your filters.",
+        )}
       </p>
     </div>
   );

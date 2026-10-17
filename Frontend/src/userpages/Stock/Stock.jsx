@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
-
 import {
   Search,
   Plus,
@@ -19,8 +18,6 @@ import {
   Boxes,
   CalendarDays,
   RefreshCw,
-  ArrowUpRight,
-  ArrowDownRight,
   Warehouse,
   SlidersHorizontal,
   RotateCcw,
@@ -28,6 +25,7 @@ import {
   X,
   SearchX,
 } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
 
 const API_URL = `${import.meta.env.VITE_API_URL}/api`;
 
@@ -71,7 +69,7 @@ const getStatusClasses = (status) => {
   return "border-emerald-200 bg-emerald-50 text-emerald-700";
 };
 
-const StatusBadge = ({ status }) => {
+const StatusBadge = ({ status, t }) => {
   const Icon =
     status === "Out of Stock"
       ? XCircle
@@ -79,22 +77,29 @@ const StatusBadge = ({ status }) => {
         ? AlertTriangle
         : CheckCircle2;
 
+  const statusLabels = {
+    "Out of Stock": t("stock.status.outOfStock"),
+    "Low Stock": t("stock.status.lowStock"),
+    "In Stock": t("stock.status.inStock"),
+  };
+
   return (
     <span
-      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold ${getStatusClasses(
-        status,
-      )}`}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold ${getStatusClasses(status)}`}
     >
       <Icon size={13} />
-      {status}
+      {statusLabels[status] || status}
     </span>
   );
 };
 
-const formatSelectedDate = (date) => {
-  if (!date) return "All dates";
+const formatSelectedDate = (date, language) => {
+  if (!date) return "";
 
-  return new Date(`${date}T00:00:00`).toLocaleDateString("en-US", {
+  const locale =
+    language === "fa" ? "fa-AF" : language === "ps" ? "ps-AF" : "en-US";
+
+  return new Date(`${date}T00:00:00`).toLocaleDateString(locale, {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -142,14 +147,14 @@ const StatCard = ({
   </motion.div>
 );
 
-const ProductActions = ({ product, onDelete, onNavigate }) => (
+const ProductActions = ({ product, onDelete, onNavigate, t, direction }) => (
   <div
     data-stock-action-menu
     className="relative flex shrink-0 items-center justify-end"
   >
     <button
       type="button"
-      aria-label={`Actions for ${product.name}`}
+      aria-label={`${t("stock.actions.actionsFor")} ${product.name}`}
       aria-expanded={onNavigate.open}
       onClick={onNavigate.toggle}
       className={`rounded-xl border p-2.5 transition ${
@@ -168,7 +173,9 @@ const ProductActions = ({ product, onDelete, onNavigate }) => (
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: -5 }}
           transition={{ duration: 0.15 }}
-          className="absolute right-0 top-12 z-30 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-xl shadow-slate-900/10"
+          className={`absolute top-12 z-30 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10 ${
+            direction === "rtl" ? "left-0 text-right" : "right-0 text-left"
+          }`}
         >
           <Link
             to={`/dashboard/stock/view/${product.id}`}
@@ -176,7 +183,7 @@ const ProductActions = ({ product, onDelete, onNavigate }) => (
             className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-blue-700"
           >
             <Eye size={16} />
-            View product
+            {t("stock.actions.view")}
           </Link>
 
           <Link
@@ -185,7 +192,7 @@ const ProductActions = ({ product, onDelete, onNavigate }) => (
             className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-blue-700"
           >
             <Pencil size={16} />
-            Edit product
+            {t("stock.actions.edit")}
           </Link>
 
           <div className="my-1 border-t border-slate-100" />
@@ -196,7 +203,7 @@ const ProductActions = ({ product, onDelete, onNavigate }) => (
             className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
           >
             <Trash2 size={16} />
-            Delete product
+            {t("stock.actions.delete")}
           </button>
         </motion.div>
       )}
@@ -205,6 +212,8 @@ const ProductActions = ({ product, onDelete, onNavigate }) => (
 );
 
 const Stock = () => {
+  const { t, language, direction } = useLanguage();
+
   const [products, setProducts] = useState([]);
   const [selectedDate, setSelectedDate] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -214,6 +223,9 @@ const Stock = () => {
   const [categoryFilter, setCategoryFilter] = useState("All Categories");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [openMenuId, setOpenMenuId] = useState(null);
+
+  const numberLocale =
+    language === "fa" ? "fa-AF" : language === "ps" ? "ps-AF" : "en-US";
 
   const loadProducts = async (isRefresh = false) => {
     try {
@@ -232,7 +244,7 @@ const Stock = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to load products.");
+        throw new Error(data.message || t("stock.errors.loadFailed"));
       }
 
       const databaseProducts = Array.isArray(data) ? data : data.products || [];
@@ -252,7 +264,7 @@ const Stock = () => {
 
       setProducts(normalizedProducts);
     } catch (error) {
-      setLoadError(error.message || "Failed to load products.");
+      setLoadError(error.message || t("stock.errors.loadFailed"));
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -356,7 +368,7 @@ const Stock = () => {
     if (!product) return;
 
     const confirmed = window.confirm(
-      `Are you sure you want to delete ${product.name}?`,
+      `${t("stock.confirmDelete")} ${product.name}?`,
     );
 
     if (!confirmed) return;
@@ -370,15 +382,15 @@ const Stock = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to delete product.");
+        throw new Error(data.message || t("stock.errors.deleteFailed"));
       }
 
       setProducts((current) => current.filter((item) => item.id !== productId));
 
       setOpenMenuId(null);
-      toast.success(data.message || "Product deleted successfully.");
+      toast.success(data.message || t("stock.success.deleted"));
     } catch (error) {
-      toast.error(error.message || "Failed to delete product.");
+      toast.error(error.message || t("stock.errors.deleteFailed"));
     }
   };
 
@@ -388,8 +400,20 @@ const Stock = () => {
     statusFilter !== "All Status",
   ].filter(Boolean).length;
 
+  const categoryLabels = {
+    "All Categories": t("stock.filters.allCategories"),
+  };
+
+  const statusLabels = {
+    "All Status": t("stock.filters.allStatuses"),
+    "In Stock": t("stock.status.inStock"),
+    "Low Stock": t("stock.status.lowStock"),
+    "Out of Stock": t("stock.status.outOfStock"),
+  };
+
   return (
     <motion.div
+      dir={direction}
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -403,16 +427,15 @@ const Stock = () => {
         <div>
           <div className="mb-2 flex items-center gap-2 text-sm font-medium text-blue-700">
             <Warehouse size={17} />
-            <span>Inventory management</span>
+            <span>{t("stock.eyebrow")}</span>
           </div>
 
           <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-            Stock & Inventory
+            {t("stock.title")}
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">
-            Keep track of your products, stock levels, and inventory value from
-            one place.
+            {t("stock.description")}
           </p>
         </div>
 
@@ -427,7 +450,7 @@ const Stock = () => {
               size={17}
               className={isRefreshing ? "animate-spin" : ""}
             />
-            Refresh
+            {t("stock.refresh")}
           </button>
 
           <Link
@@ -435,7 +458,7 @@ const Stock = () => {
             className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100"
           >
             <Plus size={19} />
-            Add Product
+            {t("stock.addProduct")}
           </Link>
         </div>
       </motion.section>
@@ -447,7 +470,7 @@ const Stock = () => {
           className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800"
         >
           <RefreshCw size={18} className="animate-spin" />
-          Loading your inventory...
+          {t("stock.loading")}
         </motion.div>
       )}
 
@@ -461,7 +484,7 @@ const Stock = () => {
             <AlertTriangle size={20} className="mt-0.5 shrink-0 text-red-600" />
             <div>
               <p className="font-semibold text-red-800">
-                Unable to load inventory
+                {t("stock.errors.loadTitle")}
               </p>
               <p className="mt-1 text-sm text-red-700">{loadError}</p>
             </div>
@@ -473,12 +496,12 @@ const Stock = () => {
             className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 text-sm font-semibold text-red-700 transition hover:bg-red-100"
           >
             <RefreshCw size={15} />
-            Try again
+            {t("stock.tryAgain")}
           </button>
         </motion.div>
       )}
 
-      {/* Date selector and selected range */}
+      {/* Date selector */}
       <motion.section
         variants={itemVariants}
         className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5"
@@ -490,19 +513,19 @@ const Stock = () => {
 
           <div>
             <p className="text-sm font-semibold text-slate-900">
-              Inventory date filter
+              {t("stock.dateFilter.title")}
             </p>
             <p className="mt-1 text-sm text-slate-500">
               {selectedDate
-                ? `Products added on ${formatSelectedDate(selectedDate)}`
-                : "Viewing all products across every date"}
+                ? `${t("stock.dateFilter.addedOn")} ${formatSelectedDate(selectedDate, language)}`
+                : t("stock.dateFilter.allDates")}
             </p>
           </div>
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <input
-            aria-label="Filter products by date added"
+            aria-label={t("stock.dateFilter.ariaLabel")}
             type="date"
             value={selectedDate}
             onChange={handleDateChange}
@@ -518,7 +541,7 @@ const Stock = () => {
             className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
           >
             <RotateCcw size={15} />
-            Clear date
+            {t("stock.dateFilter.clearDate")}
           </button>
         </div>
       </motion.section>
@@ -529,9 +552,9 @@ const Stock = () => {
         className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4"
       >
         <StatCard
-          title="Total products"
-          value={totalProducts.toLocaleString("en-US")}
-          subtitle="Products in the selected date range"
+          title={t("stock.stats.totalProducts")}
+          value={totalProducts.toLocaleString(numberLocale)}
+          subtitle={t("stock.stats.productsInDateRange")}
           icon={Package}
           iconColor="text-blue-700"
           iconBackground="bg-blue-50"
@@ -539,9 +562,9 @@ const Stock = () => {
         />
 
         <StatCard
-          title="Low stock"
-          value={lowStockProducts.toLocaleString("en-US")}
-          subtitle="Products approaching their minimum"
+          title={t("stock.stats.lowStock")}
+          value={lowStockProducts.toLocaleString(numberLocale)}
+          subtitle={t("stock.stats.approachingMinimum")}
           icon={AlertTriangle}
           iconColor="text-amber-700"
           iconBackground="bg-amber-50"
@@ -549,9 +572,9 @@ const Stock = () => {
         />
 
         <StatCard
-          title="Out of stock"
-          value={outOfStockProducts.toLocaleString("en-US")}
-          subtitle="Products with no available units"
+          title={t("stock.stats.outOfStock")}
+          value={outOfStockProducts.toLocaleString(numberLocale)}
+          subtitle={t("stock.stats.noAvailableUnits")}
           icon={XCircle}
           iconColor="text-red-700"
           iconBackground="bg-red-50"
@@ -559,9 +582,9 @@ const Stock = () => {
         />
 
         <StatCard
-          title="Stock value"
+          title={t("stock.stats.stockValue")}
           value={formatMoney(totalStockValue)}
-          subtitle="Current quantity × purchase price"
+          subtitle={t("stock.stats.stockValueFormula")}
           icon={DollarSign}
           iconColor="text-emerald-700"
           iconBackground="bg-emerald-50"
@@ -574,23 +597,24 @@ const Stock = () => {
         variants={itemVariants}
         className="overflow-visible rounded-2xl border border-slate-200 bg-white shadow-sm"
       >
-        {/* Section header */}
         <div className="border-b border-slate-100 p-4 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
-                Product inventory
+                {t("stock.inventory.title")}
               </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Search, filter, and manage your store products.
+                {t("stock.inventory.description")}
               </p>
             </div>
 
             <div className="flex w-fit items-center gap-2 rounded-xl bg-slate-50 px-3.5 py-2.5 text-sm font-medium text-slate-600 ring-1 ring-inset ring-slate-200">
               <Boxes size={17} className="text-blue-600" />
               <span>
-                {filteredProducts.length}{" "}
-                {filteredProducts.length === 1 ? "product" : "products"}
+                {filteredProducts.length.toLocaleString(numberLocale)}{" "}
+                {filteredProducts.length === 1
+                  ? t("stock.inventory.product")
+                  : t("stock.inventory.products")}
               </span>
             </div>
           </div>
@@ -600,24 +624,30 @@ const Stock = () => {
             <div className="relative">
               <Search
                 size={18}
-                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-slate-400 ${
+                  direction === "rtl" ? "right-3.5" : "left-3.5"
+                }`}
               />
 
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search name, SKU, or category..."
-                aria-label="Search products"
-                className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-10 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-50"
+                placeholder={t("stock.search.placeholder")}
+                aria-label={t("stock.search.ariaLabel")}
+                className={`h-12 w-full rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-50 ${
+                  direction === "rtl" ? "pl-10 pr-10" : "pl-10 pr-10"
+                }`}
               />
 
               {searchTerm && (
                 <button
                   type="button"
-                  aria-label="Clear search"
+                  aria-label={t("stock.search.clear")}
                   onClick={() => setSearchTerm("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                  className={`absolute top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 ${
+                    direction === "rtl" ? "left-3" : "right-3"
+                  }`}
                 >
                   <X size={15} />
                 </button>
@@ -627,49 +657,62 @@ const Stock = () => {
             <div className="relative">
               <Filter
                 size={17}
-                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-slate-400 ${
+                  direction === "rtl" ? "right-3.5" : "left-3.5"
+                }`}
               />
 
               <select
                 value={categoryFilter}
                 onChange={(event) => setCategoryFilter(event.target.value)}
-                aria-label="Filter by category"
-                className="h-12 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-9 text-sm text-slate-700 outline-none transition hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-50"
+                aria-label={t("stock.filters.categoryAriaLabel")}
+                className={`h-12 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-700 outline-none transition hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-50 ${
+                  direction === "rtl" ? "pl-9 pr-10" : "pl-9 pr-9"
+                }`}
               >
                 {categories.map((category) => (
                   <option key={category} value={category}>
-                    {category}
+                    {categoryLabels[category] || category}
                   </option>
                 ))}
               </select>
 
               <ChevronDown
                 size={16}
-                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-slate-400 ${
+                  direction === "rtl" ? "left-3.5" : "right-3.5"
+                }`}
               />
             </div>
 
             <div className="relative">
               <SlidersHorizontal
                 size={16}
-                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-slate-400 ${
+                  direction === "rtl" ? "right-3.5" : "left-3.5"
+                }`}
               />
 
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value)}
-                aria-label="Filter by stock status"
-                className="h-12 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-9 text-sm text-slate-700 outline-none transition hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-50"
+                aria-label={t("stock.filters.statusAriaLabel")}
+                className={`h-12 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-700 outline-none transition hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-50 ${
+                  direction === "rtl" ? "pl-9 pr-10" : "pl-9 pr-9"
+                }`}
               >
-                <option value="All Status">All statuses</option>
-                <option value="In Stock">In stock</option>
-                <option value="Low Stock">Low stock</option>
-                <option value="Out of Stock">Out of stock</option>
+                {Object.entries(statusLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
               </select>
 
               <ChevronDown
                 size={16}
-                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-slate-400 ${
+                  direction === "rtl" ? "left-3.5" : "right-3.5"
+                }`}
               />
             </div>
           </div>
@@ -678,15 +721,15 @@ const Stock = () => {
           {activeFilterCount > 0 && (
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <span className="text-xs font-medium text-slate-500">
-                Active filters:
+                {t("stock.activeFilters")}
               </span>
 
               {searchTerm.trim() && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
-                  Search: {searchTerm.trim()}
+                  {t("stock.search.label")}: {searchTerm.trim()}
                   <button
                     type="button"
-                    aria-label="Remove search filter"
+                    aria-label={t("stock.search.removeFilter")}
                     onClick={() => setSearchTerm("")}
                   >
                     <X size={13} />
@@ -699,7 +742,7 @@ const Stock = () => {
                   {categoryFilter}
                   <button
                     type="button"
-                    aria-label="Remove category filter"
+                    aria-label={t("stock.filters.removeCategory")}
                     onClick={() => setCategoryFilter("All Categories")}
                   >
                     <X size={13} />
@@ -709,10 +752,10 @@ const Stock = () => {
 
               {statusFilter !== "All Status" && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
-                  {statusFilter}
+                  {statusLabels[statusFilter] || statusFilter}
                   <button
                     type="button"
-                    aria-label="Remove status filter"
+                    aria-label={t("stock.filters.removeStatus")}
                     onClick={() => setStatusFilter("All Status")}
                   >
                     <X size={13} />
@@ -725,7 +768,7 @@ const Stock = () => {
                 onClick={clearFilters}
                 className="text-xs font-semibold text-slate-500 underline decoration-slate-300 underline-offset-4 transition hover:text-blue-700"
               >
-                Clear filters
+                {t("stock.clearFilters")}
               </button>
             </div>
           )}
@@ -733,22 +776,30 @@ const Stock = () => {
 
         {/* Desktop table */}
         <div className="hidden overflow-x-auto lg:block">
-          <table className="w-full min-w-[960px] border-collapse text-left">
+          <table
+            className={`w-full min-w-[960px] border-collapse ${
+              direction === "rtl" ? "text-right" : "text-left"
+            }`}
+          >
             <thead>
               <tr className="bg-slate-50/80">
                 {[
-                  "Product",
-                  "Category",
-                  "Quantity",
-                  "Purchase price",
-                  "Stock value",
-                  "Status",
+                  t("stock.table.product"),
+                  t("stock.table.category"),
+                  t("stock.table.quantity"),
+                  t("stock.table.purchasePrice"),
+                  t("stock.table.stockValue"),
+                  t("stock.table.status"),
                   "",
                 ].map((heading, index) => (
                   <th
                     key={`${heading}-${index}`}
                     className={`whitespace-nowrap px-5 py-4 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500 ${
-                      index === 6 ? "text-right" : ""
+                      index === 6
+                        ? direction === "rtl"
+                          ? "text-left"
+                          : "text-right"
+                        : ""
                     }`}
                   >
                     {heading}
@@ -778,7 +829,7 @@ const Stock = () => {
                             {product.name}
                           </p>
                           <p className="mt-1 text-xs text-slate-500">
-                            SKU: {product.sku || "—"}
+                            {t("stock.table.sku")}: {product.sku || "—"}
                           </p>
                         </div>
                       </div>
@@ -786,16 +837,20 @@ const Stock = () => {
 
                     <td className="px-5 py-4">
                       <span className="inline-flex rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-600">
-                        {product.category}
+                        {product.category === "Uncategorized"
+                          ? t("stock.uncategorized")
+                          : product.category}
                       </span>
                     </td>
 
                     <td className="px-5 py-4">
                       <p className="text-sm font-semibold text-slate-900">
-                        {product.quantity.toLocaleString("en-US")}
+                        {product.quantity.toLocaleString(numberLocale)}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
-                        Min. {product.minStock} units
+                        {t("stock.table.minimum")}{" "}
+                        {product.minStock.toLocaleString(numberLocale)}{" "}
+                        {t("stock.table.units")}
                       </p>
                     </td>
 
@@ -810,13 +865,15 @@ const Stock = () => {
                     </td>
 
                     <td className="px-5 py-4">
-                      <StatusBadge status={status} />
+                      <StatusBadge status={status} t={t} />
                     </td>
 
-                    <td className="px-5 py-4 text-right">
+                    <td className="px-5 py-4">
                       <ProductActions
                         product={product}
                         onDelete={handleDelete}
+                        t={t}
+                        direction={direction}
                         onNavigate={{
                           open: openMenuId === product.id,
                           toggle: () =>
@@ -854,11 +911,13 @@ const Stock = () => {
                       </h3>
 
                       <p className="mt-1 text-xs text-slate-500">
-                        SKU: {product.sku || "—"}
+                        {t("stock.table.sku")}: {product.sku || "—"}
                       </p>
 
                       <p className="mt-1 text-xs text-slate-500">
-                        {product.category}
+                        {product.category === "Uncategorized"
+                          ? t("stock.uncategorized")
+                          : product.category}
                       </p>
                     </div>
                   </div>
@@ -866,6 +925,8 @@ const Stock = () => {
                   <ProductActions
                     product={product}
                     onDelete={handleDelete}
+                    t={t}
+                    direction={direction}
                     onNavigate={{
                       open: openMenuId === product.id,
                       toggle: () =>
@@ -878,33 +939,43 @@ const Stock = () => {
                 </div>
 
                 <div className="mt-4">
-                  <StatusBadge status={status} />
+                  <StatusBadge status={status} t={t} />
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-4 rounded-xl bg-slate-50 p-4 sm:grid-cols-4">
                   <div>
-                    <p className="text-xs text-slate-500">Quantity</p>
+                    <p className="text-xs text-slate-500">
+                      {t("stock.table.quantity")}
+                    </p>
                     <p className="mt-1 text-sm font-bold text-slate-900">
-                      {product.quantity.toLocaleString("en-US")} units
+                      {product.quantity.toLocaleString(numberLocale)}{" "}
+                      {t("stock.table.units")}
                     </p>
                   </div>
 
                   <div>
-                    <p className="text-xs text-slate-500">Min. stock</p>
+                    <p className="text-xs text-slate-500">
+                      {t("stock.table.minimumStock")}
+                    </p>
                     <p className="mt-1 text-sm font-bold text-slate-900">
-                      {product.minStock} units
+                      {product.minStock.toLocaleString(numberLocale)}{" "}
+                      {t("stock.table.units")}
                     </p>
                   </div>
 
                   <div>
-                    <p className="text-xs text-slate-500">Purchase price</p>
+                    <p className="text-xs text-slate-500">
+                      {t("stock.table.purchasePrice")}
+                    </p>
                     <p className="mt-1 break-words text-sm font-bold text-slate-900">
                       {formatMoney(product.purchasePrice)}
                     </p>
                   </div>
 
                   <div>
-                    <p className="text-xs text-slate-500">Stock value</p>
+                    <p className="text-xs text-slate-500">
+                      {t("stock.table.stockValue")}
+                    </p>
                     <p className="mt-1 break-words text-sm font-bold text-slate-900">
                       {formatMoney(stockValue)}
                     </p>
@@ -928,14 +999,14 @@ const Stock = () => {
 
             <h3 className="mt-5 text-lg font-bold text-slate-900">
               {activeFilterCount > 0
-                ? "No matching products"
-                : "Your inventory is empty"}
+                ? t("stock.empty.noMatches")
+                : t("stock.empty.title")}
             </h3>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
               {activeFilterCount > 0
-                ? "Try changing your search or filters to find the products you need."
-                : "Add your first product to start tracking quantities, stock levels, and inventory value."}
+                ? t("stock.empty.changeFilters")
+                : t("stock.empty.description")}
             </p>
 
             <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
@@ -946,7 +1017,7 @@ const Stock = () => {
                   className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
                   <RotateCcw size={15} />
-                  Clear filters
+                  {t("stock.clearFilters")}
                 </button>
               )}
 
@@ -959,7 +1030,7 @@ const Stock = () => {
                     className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700"
                   >
                     <Plus size={17} />
-                    Add your first product
+                    {t("stock.empty.addFirstProduct")}
                   </Link>
                 )}
             </div>
@@ -970,20 +1041,20 @@ const Stock = () => {
         {filteredProducts.length > 0 && (
           <div className="flex flex-col gap-2 border-t border-slate-100 bg-slate-50/60 px-4 py-3.5 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <p>
-              Showing{" "}
+              {t("stock.footer.showing")}{" "}
               <span className="font-semibold text-slate-700">
-                {filteredProducts.length}
+                {filteredProducts.length.toLocaleString(numberLocale)}
               </span>{" "}
-              of{" "}
+              {t("stock.footer.of")}{" "}
               <span className="font-semibold text-slate-700">
-                {dateFilteredProducts.length}
+                {dateFilteredProducts.length.toLocaleString(numberLocale)}
               </span>{" "}
-              products
+              {t("stock.inventory.products")}
             </p>
 
             <p className="flex items-center gap-1.5">
               <CheckCircle2 size={14} className="text-emerald-600" />
-              Stock value uses purchase prices
+              {t("stock.footer.purchasePriceNote")}
             </p>
           </div>
         )}

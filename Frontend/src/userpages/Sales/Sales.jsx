@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
+import { useLanguage } from "../../context/LanguageContext";
 
 import {
   Search,
@@ -23,9 +24,7 @@ import {
   Eye,
   Phone,
   Package,
-  CreditCard,
   Wallet,
-  CalendarClock,
 } from "lucide-react";
 
 const API_BASE_URL = `${import.meta.env.VITE_API_URL}`;
@@ -70,6 +69,17 @@ const getStatusIcon = (status) => {
   if (status === "Paid") return CheckCircle2;
   if (status === "Returned") return RotateCcw;
   return Clock3;
+};
+
+const getTranslatedStatus = (status, t) => {
+  const keys = {
+    Paid: "sales.paid",
+    Partial: "sales.partial",
+    Pending: "sales.pending",
+    Returned: "sales.returned",
+  };
+
+  return keys[status] ? t(keys[status]) : status;
 };
 
 /* -------------------------------------------------------------------------- */
@@ -129,6 +139,8 @@ const DetailRow = ({ label, value, valueClass = "" }) => (
 /* -------------------------------------------------------------------------- */
 
 const Sales = () => {
+  const { t } = useLanguage();
+
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -165,7 +177,7 @@ const Sales = () => {
         throw new Error(
           typeof data === "string"
             ? data
-            : data.message || "Failed to load sales.",
+            : data.message || t("sales.failedLoad"),
         );
       }
 
@@ -204,7 +216,7 @@ const Sales = () => {
           items: (sale.items || []).map((item) => ({
             id: item.id,
             productId: item.product_id,
-            name: item.product_name || "Unnamed product",
+            name: item.product_name || t("sales.unnamedProduct"),
             quantity: Number(item.quantity || 0),
             price: Number(item.unit_price || 0),
             purchasePrice:
@@ -221,7 +233,7 @@ const Sales = () => {
           paid,
           due: Math.max(0, due),
           paymentMethod: sale.payment_method || "—",
-          paymentStatus: paymentStatus,
+          paymentStatus,
           status:
             saleStatus.toLowerCase() === "returned"
               ? "Returned"
@@ -233,13 +245,13 @@ const Sales = () => {
 
       setSales(mappedSales);
     } catch (err) {
-      const message = err.message || "Unable to load sales.";
+      const message = err.message || t("sales.unableLoad");
       setError(message);
       toast.error(message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchSales();
@@ -303,12 +315,8 @@ const Sales = () => {
 
   const handleViewDetails = async (sale) => {
     setOpenMenuId(null);
-
-    // Display the available sale information immediately.
     setSaleToView(sale);
 
-    // Then request the complete record, in case GET /api/sales/:id
-    // includes additional fields not included in the sales list.
     try {
       const response = await fetch(`${API_BASE_URL}/api/sales/${sale.id}`, {
         method: "GET",
@@ -324,7 +332,7 @@ const Sales = () => {
         throw new Error(
           typeof data === "string"
             ? data
-            : data.message || "Could not load additional sale details.",
+            : data.message || t("sales.additionalDetailsError"),
         );
       }
 
@@ -339,6 +347,8 @@ const Sales = () => {
         const paid = Number(record.paid_amount ?? current.paid);
         const due = Number(record.due_amount ?? Math.max(0, total - paid));
 
+        const recordStatus = String(record.status ?? current.saleStatus);
+
         return {
           ...current,
           customer: record.customer_name ?? current.customer,
@@ -352,17 +362,16 @@ const Sales = () => {
           paid,
           due: Math.max(0, due),
           paymentMethod: record.payment_method ?? current.paymentMethod,
-          saleStatus: record.status ?? current.saleStatus,
+          saleStatus: recordStatus,
           status:
-            String(record.status || current.saleStatus).toLowerCase() ===
-            "returned"
+            recordStatus.toLowerCase() === "returned"
               ? "Returned"
               : current.status,
           items: Array.isArray(record.items)
             ? record.items.map((item) => ({
                 id: item.id,
                 productId: item.product_id,
-                name: item.product_name || "Unnamed product",
+                name: item.product_name || t("sales.unnamedProduct"),
                 quantity: Number(item.quantity || 0),
                 price: Number(item.unit_price || 0),
                 purchasePrice:
@@ -378,7 +387,6 @@ const Sales = () => {
         };
       });
     } catch (err) {
-      // The sales list still contains enough information to display the modal.
       console.error("Failed to load full sale details:", err);
     }
   };
@@ -393,7 +401,7 @@ const Sales = () => {
     if (!sale) return;
 
     if (sale.saleStatus.toLowerCase() === "returned") {
-      toast.error("This sale has already been returned.");
+      toast.error(t("sales.alreadyReturned"));
       setOpenMenuId(null);
       return;
     }
@@ -427,21 +435,21 @@ const Sales = () => {
         throw new Error(
           typeof data === "string"
             ? data
-            : data.message || "Failed to return sale.",
+            : data.message || t("sales.failedReturn"),
         );
       }
 
       toast.success(
         typeof data === "object" && data.message
           ? data.message
-          : "Sale returned successfully.",
+          : t("sales.returnedSuccess"),
       );
 
       setSaleToReturn(null);
       setSaleToView(null);
       await fetchSales();
     } catch (err) {
-      toast.error(err.message || "Failed to return sale.");
+      toast.error(err.message || t("sales.failedReturn"));
     } finally {
       setReturningSaleId(null);
     }
@@ -478,7 +486,7 @@ const Sales = () => {
           }`}
         >
           <Eye size={16} />
-          View Details
+          {t("sales.viewDetailsAction")}
         </button>
 
         <Link
@@ -491,7 +499,7 @@ const Sales = () => {
           }`}
         >
           <RefreshCw size={16} />
-          Replace
+          {t("sales.replace")}
         </Link>
 
         <button
@@ -509,10 +517,10 @@ const Sales = () => {
         >
           <RotateCcw size={16} />
           {returningSaleId === sale.id
-            ? "Returning..."
+            ? t("sales.returning")
             : sale.saleStatus.toLowerCase() === "returned"
-              ? "Returned"
-              : "Return"}
+              ? t("sales.returned")
+              : t("sales.return")}
         </button>
 
         <Link
@@ -525,7 +533,7 @@ const Sales = () => {
           }`}
         >
           <Pencil size={16} />
-          Edit
+          {t("sales.edit")}
         </Link>
       </>
     );
@@ -548,15 +556,16 @@ const Sales = () => {
         className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
-          <p className="text-sm font-medium text-slate-500">Sales Management</p>
+          <p className="text-sm font-medium text-slate-500">
+            {t("sales.management")}
+          </p>
 
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-            Sales
+            {t("sales.title")}
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            Track your sales, manage customer payments, and review transaction
-            details.
+            {t("sales.description")}
           </p>
         </div>
 
@@ -565,7 +574,7 @@ const Sales = () => {
           className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#2563eb] px-5 text-sm font-semibold text-white transition hover:bg-[#1d4ed8]"
         >
           <Plus size={19} />
-          New Sale
+          {t("sales.newSale")}
         </Link>
       </motion.div>
 
@@ -575,36 +584,36 @@ const Sales = () => {
         className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
       >
         <StatCard
-          title="Total Sales"
+          title={t("sales.totalSales")}
           value={totalSales.toLocaleString()}
-          subtitle="Sales excluding returned transactions"
+          subtitle={t("sales.salesExcludingReturns")}
           icon={ShoppingCart}
           iconColor="text-blue-700"
           iconBackground="bg-blue-100"
         />
 
         <StatCard
-          title="Total Revenue"
+          title={t("sales.totalRevenue")}
           value={formatMoney(totalRevenue)}
-          subtitle="Total sales amount"
+          subtitle={t("sales.totalSalesAmount")}
           icon={DollarSign}
           iconColor="text-emerald-700"
           iconBackground="bg-emerald-100"
         />
 
         <StatCard
-          title="Paid Amount"
+          title={t("sales.paidAmount")}
           value={formatMoney(totalPaid)}
-          subtitle="Amount received"
+          subtitle={t("sales.amountReceived")}
           icon={CheckCircle2}
           iconColor="text-blue-700"
           iconBackground="bg-blue-100"
         />
 
         <StatCard
-          title="Pending Amount"
+          title={t("sales.pendingAmount")}
           value={formatMoney(totalPending)}
-          subtitle="Amount still remaining"
+          subtitle={t("sales.amountRemaining")}
           icon={Clock3}
           iconColor="text-red-700"
           iconBackground="bg-red-100"
@@ -620,25 +629,27 @@ const Sales = () => {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="text-lg font-bold text-slate-950 sm:text-xl">
-                Sales Transactions
+                {t("sales.transactions")}
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Review all sales and customer payment statuses.
+                {t("sales.reviewTransactions")}
               </p>
             </div>
 
             <div className="flex items-center gap-2 text-sm text-slate-500">
               <ReceiptText size={18} />
-              <span>{filteredSales.length} transactions found</span>
+              <span>
+                {filteredSales.length} {t("sales.transactionsFound")}
+              </span>
 
               <button
                 type="button"
                 onClick={fetchSales}
                 disabled={loading}
                 className="ml-2 rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 disabled:opacity-50"
-                title="Refresh sales"
-                aria-label="Refresh sales"
+                title={t("sales.refreshSales")}
+                aria-label={t("sales.refreshSales")}
               >
                 <RefreshCw
                   size={16}
@@ -660,7 +671,7 @@ const Sales = () => {
                 type="text"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search sale ID, customer, phone, or product..."
+                placeholder={t("sales.searchPlaceholder")}
                 className="h-11 w-full rounded-xl border border-[#c8cce0] bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               />
             </div>
@@ -671,11 +682,11 @@ const Sales = () => {
                 onChange={(event) => setStatusFilter(event.target.value)}
                 className="h-11 w-full appearance-none rounded-xl border border-[#c8cce0] bg-white px-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               >
-                <option value="All Status">All Status</option>
-                <option value="Paid">Paid</option>
-                <option value="Partial">Partial</option>
-                <option value="Pending">Pending</option>
-                <option value="Returned">Returned</option>
+                <option value="All Status">{t("sales.allStatus")}</option>
+                <option value="Paid">{t("sales.paid")}</option>
+                <option value="Partial">{t("sales.partial")}</option>
+                <option value="Pending">{t("sales.pending")}</option>
+                <option value="Returned">{t("sales.returned")}</option>
               </select>
 
               <ChevronDown
@@ -702,7 +713,7 @@ const Sales = () => {
 
         {loading && (
           <div className="px-6 py-10 text-center text-sm text-slate-500">
-            Loading sales...
+            {t("sales.loading")}
           </div>
         )}
 
@@ -713,7 +724,7 @@ const Sales = () => {
             </div>
 
             <h3 className="mt-4 text-lg font-bold text-slate-950">
-              Could not load sales
+              {t("sales.loadErrorTitle")}
             </h3>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-red-600">
@@ -725,7 +736,7 @@ const Sales = () => {
               onClick={fetchSales}
               className="mt-5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
             >
-              Try Again
+              {t("sales.tryAgain")}
             </button>
           </div>
         )}
@@ -738,23 +749,23 @@ const Sales = () => {
                 <thead>
                   <tr className="bg-[#f8f8ff] text-left">
                     {[
-                      "Sale ID",
-                      "Customer",
-                      "Computer / Product",
-                      "Date",
-                      "Total",
-                      "Paid",
-                      "Remaining",
-                      "Status",
-                      "Action",
-                    ].map((heading) => (
+                      ["saleId", "Sale ID"],
+                      ["customer", "Customer"],
+                      ["product", "Computer / Product"],
+                      ["date", "Date"],
+                      ["total", "Total"],
+                      ["paidShort", "Paid"],
+                      ["remaining", "Remaining"],
+                      ["status", "Status"],
+                      ["action", "Action"],
+                    ].map(([key, fallback]) => (
                       <th
-                        key={heading}
+                        key={key}
                         className={`px-6 py-4 text-xs font-bold uppercase tracking-wide text-slate-600 ${
-                          heading === "Action" ? "text-right" : ""
+                          key === "action" ? "text-right" : ""
                         }`}
                       >
-                        {heading}
+                        {t(`sales.${key}`) || fallback}
                       </th>
                     ))}
                   </tr>
@@ -780,7 +791,7 @@ const Sales = () => {
                             {sale.customer}
                           </p>
                           <p className="mt-1 text-xs text-slate-500">
-                            {sale.customerPhone || "No phone provided"}
+                            {sale.customerPhone || t("sales.noPhone")}
                           </p>
                         </td>
 
@@ -794,21 +805,21 @@ const Sales = () => {
                                   {item.name}
                                 </p>
                                 <p className="text-xs text-slate-500">
-                                  Qty: {item.quantity} ·{" "}
-                                  {formatMoney(item.price)} each
+                                  {t("sales.qty")}: {item.quantity} ·{" "}
+                                  {formatMoney(item.price)} {t("sales.each")}
                                 </p>
                               </div>
                             ))}
 
                             {sale.items.length > 2 && (
                               <p className="text-xs font-semibold text-blue-700">
-                                +{sale.items.length - 2} more item(s)
+                                +{sale.items.length - 2} {t("sales.moreItems")}
                               </p>
                             )}
 
                             {sale.items.length === 0 && (
                               <span className="text-sm text-slate-400">
-                                No items recorded
+                                {t("sales.noItems")}
                               </span>
                             )}
                           </div>
@@ -819,7 +830,7 @@ const Sales = () => {
                             className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:text-blue-900"
                           >
                             <Eye size={14} />
-                            View details
+                            {t("sales.viewDetails")}
                           </button>
                         </td>
 
@@ -846,7 +857,7 @@ const Sales = () => {
                             )}`}
                           >
                             <StatusIcon size={14} />
-                            {sale.status}
+                            {getTranslatedStatus(sale.status, t)}
                           </span>
                         </td>
 
@@ -859,7 +870,7 @@ const Sales = () => {
                               )
                             }
                             className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-                            aria-label={`Actions for ${sale.saleNumber}`}
+                            aria-label={`${t("sales.actionsFor")} ${sale.saleNumber}`}
                           >
                             <MoreVertical size={19} />
                           </button>
@@ -921,13 +932,13 @@ const Sales = () => {
                           setOpenMenuId(openMenuId === sale.id ? null : sale.id)
                         }
                         className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100"
-                        aria-label={`Actions for ${sale.saleNumber}`}
+                        aria-label={`${t("sales.actionsFor")} ${sale.saleNumber}`}
                       >
                         <MoreVertical size={19} />
                       </button>
                     </div>
 
-                    {/* Sold products are visible without opening the menu */}
+                    {/* Sold products */}
                     <div className="mt-4 space-y-2">
                       {sale.items.length > 0 ? (
                         sale.items.map((item, index) => (
@@ -944,15 +955,15 @@ const Sales = () => {
                                 {item.name}
                               </p>
                               <p className="mt-1 text-xs text-slate-500">
-                                Quantity: {item.quantity} ·{" "}
-                                {formatMoney(item.price)} each
+                                {t("sales.quantity")}: {item.quantity} ·{" "}
+                                {formatMoney(item.price)} {t("sales.each")}
                               </p>
                             </div>
                           </div>
                         ))
                       ) : (
                         <p className="text-sm text-slate-400">
-                          No items recorded
+                          {t("sales.noItems")}
                         </p>
                       )}
                     </div>
@@ -960,7 +971,7 @@ const Sales = () => {
                     <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
                       <div>
                         <p className="text-xs font-medium text-slate-500">
-                          Total
+                          {t("sales.total")}
                         </p>
                         <p className="mt-1 text-sm font-bold text-slate-950">
                           {formatMoney(sale.total)}
@@ -969,7 +980,7 @@ const Sales = () => {
 
                       <div>
                         <p className="text-xs font-medium text-slate-500">
-                          Paid
+                          {t("sales.paidShort")}
                         </p>
                         <p className="mt-1 text-sm font-bold text-emerald-700">
                           {formatMoney(sale.paid)}
@@ -978,7 +989,7 @@ const Sales = () => {
 
                       <div>
                         <p className="text-xs font-medium text-slate-500">
-                          Remaining
+                          {t("sales.remaining")}
                         </p>
                         <p className="mt-1 text-sm font-bold text-red-600">
                           {formatMoney(sale.due)}
@@ -987,7 +998,7 @@ const Sales = () => {
 
                       <div>
                         <p className="text-xs font-medium text-slate-500">
-                          Status
+                          {t("sales.status")}
                         </p>
                         <span
                           className={`mt-1 inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold ${getStatusClasses(
@@ -995,7 +1006,7 @@ const Sales = () => {
                           )}`}
                         >
                           <StatusIcon size={13} />
-                          {sale.status}
+                          {getTranslatedStatus(sale.status, t)}
                         </span>
                       </div>
                     </div>
@@ -1006,7 +1017,7 @@ const Sales = () => {
                       className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
                     >
                       <Eye size={16} />
-                      View Sale Details
+                      {t("sales.viewSaleDetails")}
                     </button>
 
                     <AnimatePresence>
@@ -1036,13 +1047,13 @@ const Sales = () => {
                 </div>
 
                 <h3 className="mt-4 text-lg font-bold text-slate-950">
-                  No sales found
+                  {t("sales.noSales")}
                 </h3>
 
                 <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
                   {sales.length === 0
-                    ? "Create your first sale to see it listed here."
-                    : "Try changing your search or filter options to find another sale."}
+                    ? t("sales.createFirstSale")
+                    : t("sales.changeFilters")}
                 </p>
 
                 {sales.length > 0 && (
@@ -1051,7 +1062,7 @@ const Sales = () => {
                     onClick={clearFilters}
                     className="mt-5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
                   >
-                    Clear Filters
+                    {t("sales.clearFilters")}
                   </button>
                 )}
               </div>
@@ -1098,7 +1109,7 @@ const Sales = () => {
                       id="sale-details-title"
                       className="text-lg font-bold text-slate-950 sm:text-xl"
                     >
-                      Sale Details
+                      {t("sales.saleDetails")}
                     </h2>
                     <p className="mt-1 break-words text-sm text-slate-500">
                       {saleToView.saleNumber}
@@ -1110,7 +1121,7 @@ const Sales = () => {
                   type="button"
                   onClick={() => setSaleToView(null)}
                   className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-                  aria-label="Close sale details"
+                  aria-label={t("sales.closeSaleDetails")}
                 >
                   <X size={19} />
                 </button>
@@ -1121,27 +1132,36 @@ const Sales = () => {
                 <section>
                   <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-900">
                     <Phone size={17} className="text-blue-600" />
-                    Customer Information
+                    {t("sales.customerInfo")}
                   </h3>
 
                   <div className="rounded-xl border border-slate-200 px-4">
-                    <DetailRow label="Customer" value={saleToView.customer} />
+                    <DetailRow
+                      label={t("sales.customer")}
+                      value={saleToView.customer}
+                    />
                     <div className="border-t border-slate-100">
                       <DetailRow
-                        label="Phone"
-                        value={saleToView.customerPhone || "Not provided"}
+                        label={t("sales.phone")}
+                        value={
+                          saleToView.customerPhone || t("sales.notProvided")
+                        }
                       />
                     </div>
                     <div className="border-t border-slate-100">
                       <DetailRow
-                        label="Sale date"
+                        label={t("sales.saleDate")}
                         value={formatDate(saleToView.date)}
                       />
                     </div>
                     <div className="border-t border-slate-100">
                       <DetailRow
-                        label="Sale status"
-                        value={saleToView.saleStatus}
+                        label={t("sales.saleStatus")}
+                        value={
+                          saleToView.saleStatus.toLowerCase() === "returned"
+                            ? t("sales.returned")
+                            : saleToView.saleStatus
+                        }
                         valueClass={
                           saleToView.saleStatus.toLowerCase() === "returned"
                             ? "text-slate-500"
@@ -1152,11 +1172,11 @@ const Sales = () => {
                   </div>
                 </section>
 
-                {/* Sold Computers */}
+                {/* Sold Products */}
                 <section>
                   <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-900">
                     <Package size={17} className="text-blue-600" />
-                    Sold Computers / Products
+                    {t("sales.soldProducts")}
                   </h3>
 
                   {saleToView.items.length > 0 ? (
@@ -1176,14 +1196,17 @@ const Sales = () => {
                                 {item.name}
                               </p>
                               <p className="mt-1 text-xs text-slate-500">
-                                Product ID: {item.productId ?? "Not linked"}
+                                {t("sales.productId")}:{" "}
+                                {item.productId ?? t("sales.notLinked")}
                               </p>
                             </div>
                           </div>
 
                           <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 sm:grid-cols-3">
                             <div>
-                              <p className="text-xs text-slate-500">Quantity</p>
+                              <p className="text-xs text-slate-500">
+                                {t("sales.quantity")}
+                              </p>
                               <p className="mt-1 text-sm font-bold text-slate-900">
                                 {item.quantity}
                               </p>
@@ -1191,7 +1214,7 @@ const Sales = () => {
 
                             <div>
                               <p className="text-xs text-slate-500">
-                                Unit selling price
+                                {t("sales.unitSellingPrice")}
                               </p>
                               <p className="mt-1 text-sm font-bold text-slate-900">
                                 {formatMoney(item.price)}
@@ -1200,7 +1223,7 @@ const Sales = () => {
 
                             <div>
                               <p className="text-xs text-slate-500">
-                                Item total
+                                {t("sales.itemTotal")}
                               </p>
                               <p className="mt-1 text-sm font-bold text-blue-700">
                                 {formatMoney(item.totalPrice)}
@@ -1210,7 +1233,7 @@ const Sales = () => {
                             {item.purchasePrice !== null && (
                               <div className="col-span-2 sm:col-span-3">
                                 <p className="text-xs text-slate-500">
-                                  Recorded purchase cost per unit
+                                  {t("sales.purchaseCostPerUnit")}
                                 </p>
                                 <p className="mt-1 text-sm font-semibold text-slate-800">
                                   {formatMoney(item.purchasePrice)}
@@ -1223,7 +1246,7 @@ const Sales = () => {
                     </div>
                   ) : (
                     <div className="rounded-xl border border-dashed border-slate-300 p-5 text-center text-sm text-slate-500">
-                      No sale items were recorded for this transaction.
+                      {t("sales.noSaleItems")}
                     </div>
                   )}
                 </section>
@@ -1232,37 +1255,37 @@ const Sales = () => {
                 <section>
                   <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-900">
                     <Wallet size={17} className="text-blue-600" />
-                    Payment Information
+                    {t("sales.paymentInfo")}
                   </h3>
 
                   <div className="rounded-xl border border-slate-200 px-4">
                     <DetailRow
-                      label="Subtotal"
+                      label={t("sales.subtotal")}
                       value={formatMoney(saleToView.subtotal)}
                     />
                     <div className="border-t border-slate-100">
                       <DetailRow
-                        label="Discount"
+                        label={t("sales.discount")}
                         value={formatMoney(saleToView.discount)}
                       />
                     </div>
                     <div className="border-t border-slate-100">
                       <DetailRow
-                        label="Total amount"
+                        label={t("sales.totalAmount")}
                         value={formatMoney(saleToView.total)}
                         valueClass="text-slate-950"
                       />
                     </div>
                     <div className="border-t border-slate-100">
                       <DetailRow
-                        label="Amount paid"
+                        label={t("sales.amountPaid")}
                         value={formatMoney(saleToView.paid)}
                         valueClass="text-emerald-700"
                       />
                     </div>
                     <div className="border-t border-slate-100">
                       <DetailRow
-                        label="Remaining due"
+                        label={t("sales.remainingDue")}
                         value={formatMoney(saleToView.due)}
                         valueClass={
                           saleToView.due > 0
@@ -1273,14 +1296,14 @@ const Sales = () => {
                     </div>
                     <div className="border-t border-slate-100">
                       <DetailRow
-                        label="Payment method"
+                        label={t("sales.paymentMethod")}
                         value={saleToView.paymentMethod}
                       />
                     </div>
                     <div className="border-t border-slate-100">
                       <DetailRow
-                        label="Payment status"
-                        value={saleToView.status}
+                        label={t("sales.paymentStatus")}
+                        value={getTranslatedStatus(saleToView.status, t)}
                         valueClass={
                           saleToView.status === "Paid"
                             ? "text-emerald-700"
@@ -1301,7 +1324,7 @@ const Sales = () => {
                   onClick={() => setSaleToView(null)}
                   className="h-11 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
                 >
-                  Close
+                  {t("sales.close")}
                 </button>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
@@ -1312,7 +1335,7 @@ const Sales = () => {
                       className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700"
                     >
                       <RefreshCw size={16} />
-                      Replace Item
+                      {t("sales.replaceItem")}
                     </Link>
                   )}
 
@@ -1327,7 +1350,7 @@ const Sales = () => {
                       className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 text-sm font-semibold text-white transition hover:bg-orange-700"
                     >
                       <RotateCcw size={16} />
-                      Return Sale
+                      {t("sales.returnSale")}
                     </button>
                   )}
                 </div>
@@ -1377,10 +1400,10 @@ const Sales = () => {
                       id="return-sale-title"
                       className="text-lg font-bold text-slate-950"
                     >
-                      Confirm Computer Return
+                      {t("sales.confirmReturnTitle")}
                     </h2>
                     <p className="mt-1 text-sm text-slate-500">
-                      Review the sale before returning it.
+                      {t("sales.reviewBeforeReturn")}
                     </p>
                   </div>
                 </div>
@@ -1390,7 +1413,7 @@ const Sales = () => {
                   disabled={returningSaleId !== null}
                   onClick={() => setSaleToReturn(null)}
                   className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
-                  aria-label="Close confirmation"
+                  aria-label={t("sales.close")}
                 >
                   <X size={19} />
                 </button>
@@ -1398,7 +1421,7 @@ const Sales = () => {
 
               <div className="space-y-4 p-5">
                 <p className="text-sm leading-6 text-slate-600">
-                  Are you sure you want to return this sale to your store?
+                  {t("sales.confirmReturnQuestion")}
                 </p>
 
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -1410,32 +1433,38 @@ const Sales = () => {
                     <div className="min-w-0">
                       <p className="font-bold text-slate-950">
                         {saleToReturn.items.length === 1
-                          ? saleToReturn.items[0].name || "Computer"
-                          : `${saleToReturn.items.length} sale items`}
+                          ? saleToReturn.items[0].name || t("sales.computer")
+                          : `${saleToReturn.items.length} ${t("sales.saleItems")}`}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
-                        Sale: {saleToReturn.saleNumber}
+                        {t("sales.saleId")}: {saleToReturn.saleNumber}
                       </p>
                     </div>
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-200 pt-4">
                     <div>
-                      <p className="text-xs text-slate-500">Customer</p>
+                      <p className="text-xs text-slate-500">
+                        {t("sales.customer")}
+                      </p>
                       <p className="mt-1 break-words text-sm font-semibold text-slate-800">
                         {saleToReturn.customer || "—"}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-xs text-slate-500">Sale date</p>
+                      <p className="text-xs text-slate-500">
+                        {t("sales.saleDate")}
+                      </p>
                       <p className="mt-1 text-sm font-semibold text-slate-800">
                         {formatDate(saleToReturn.date)}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-xs text-slate-500">Quantity</p>
+                      <p className="text-xs text-slate-500">
+                        {t("sales.quantity")}
+                      </p>
                       <p className="mt-1 text-sm font-semibold text-slate-800">
                         {saleToReturn.items.reduce(
                           (sum, item) => sum + item.quantity,
@@ -1445,7 +1474,9 @@ const Sales = () => {
                     </div>
 
                     <div>
-                      <p className="text-xs text-slate-500">Amount paid</p>
+                      <p className="text-xs text-slate-500">
+                        {t("sales.amountPaid")}
+                      </p>
                       <p className="mt-1 text-sm font-bold text-slate-950">
                         {formatMoney(saleToReturn.paid)}
                       </p>
@@ -1467,9 +1498,7 @@ const Sales = () => {
                 </div>
 
                 <div className="rounded-lg bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-800">
-                  Confirming will restore the sold quantities to inventory and
-                  refund the amount paid according to your existing return
-                  process.
+                  {t("sales.returnWarning")}
                 </div>
               </div>
 
@@ -1480,7 +1509,7 @@ const Sales = () => {
                   onClick={() => setSaleToReturn(null)}
                   className="h-11 rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
                 >
-                  Cancel
+                  {t("sales.cancel")}
                 </button>
 
                 <button
@@ -1492,12 +1521,12 @@ const Sales = () => {
                   {returningSaleId !== null ? (
                     <>
                       <RefreshCw size={16} className="animate-spin" />
-                      Returning...
+                      {t("sales.returning")}
                     </>
                   ) : (
                     <>
                       <RotateCcw size={16} />
-                      Confirm Return
+                      {t("sales.confirmReturn")}
                     </>
                   )}
                 </button>

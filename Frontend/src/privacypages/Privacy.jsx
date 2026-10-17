@@ -2,10 +2,43 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
+import { useLanguage } from "../context/LanguageContext";
 
 const Privacy = () => {
+  const { t, isRTL } = useLanguage();
+
+  const sections = [
+    {
+      title: "privacy.introduction",
+      text: "privacy.introductionText",
+    },
+    {
+      title: "privacy.information",
+      text: "privacy.informationText",
+    },
+    {
+      title: "privacy.usage",
+      text: "privacy.usageText",
+    },
+    {
+      title: "privacy.security",
+      text: "privacy.securityText",
+    },
+    {
+      title: "privacy.thirdParty",
+      text: "privacy.thirdPartyText",
+    },
+    {
+      title: "privacy.contact",
+      text: "privacy.contactText",
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#faf9ff] text-slate-950">
+    <div
+      dir={isRTL ? "rtl" : "ltr"}
+      className="min-h-screen bg-[#faf9ff] text-slate-950"
+    >
       <header className="border-b border-slate-200/80 bg-white">
         <div className="mx-auto flex h-[58px] max-w-[1400px] items-center justify-between px-5 sm:px-8 lg:px-10">
           <Link
@@ -20,13 +53,13 @@ const Privacy = () => {
             to="/"
             className="flex items-center gap-2 text-sm font-medium text-slate-700 transition-colors hover:text-blue-700"
           >
-            <ArrowLeft size={16} />
-            Back Home
+            <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
+            {t("contact.backHome")}
           </Link>
         </div>
       </header>
 
-      <main className="mx-auto max-w-[900px] px-5 py-16 sm:px-8 lg:px-10">
+      <main className="mx-auto max-w-[900px] px-5 py-12 sm:px-8 sm:py-16 lg:px-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -34,91 +67,30 @@ const Privacy = () => {
           className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10"
         >
           <h1 className="text-3xl font-bold tracking-[-0.035em] sm:text-4xl">
-            Privacy Policy
+            {t("privacy.title")}
           </h1>
 
-          <p className="mt-3 text-sm text-slate-500">Last updated: 2024</p>
+          <p className="mt-3 text-sm text-slate-500">
+            {t("privacy.lastUpdated")}
+          </p>
 
           <div className="mt-8 space-y-7 text-sm leading-7 text-slate-600">
-            <section>
-              <h2 className="text-lg font-semibold text-slate-950">
-                1. Introduction
-              </h2>
+            {sections.map((section) => (
+              <section key={section.title}>
+                <h2 className="text-lg font-semibold text-slate-950">
+                  {t(section.title)}
+                </h2>
 
-              <p className="mt-2">
-                CompStore ERP is designed to help stores manage inventory,
-                sales, purchases, expenses, customers, and business reports. We
-                respect your privacy and are committed to protecting your
-                information.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-slate-950">
-                2. Information We Collect
-              </h2>
-
-              <p className="mt-2">
-                We may collect information such as your name, email address,
-                phone number, store information, transaction records, and
-                account details when you use our services.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-slate-950">
-                3. How We Use Your Information
-              </h2>
-
-              <p className="mt-2">
-                Your information may be used to provide and improve our
-                services, manage your account, process store operations, provide
-                customer support, and maintain platform security.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-slate-950">
-                4. Data Security
-              </h2>
-
-              <p className="mt-2">
-                We take reasonable technical and organizational measures to
-                protect your information from unauthorized access, alteration,
-                disclosure, or destruction.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-slate-950">
-                5. Third-Party Services
-              </h2>
-
-              <p className="mt-2">
-                Some features may use third-party services such as
-                authentication, email delivery, hosting, or analytics. These
-                services may process information according to their own privacy
-                policies.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-slate-950">
-                6. Contact
-              </h2>
-
-              <p className="mt-2">
-                If you have questions about this Privacy Policy, please visit
-                our contact page.
-              </p>
-            </section>
+                <p className="mt-2">{t(section.text)}</p>
+              </section>
+            ))}
           </div>
 
           <Link
             to="/contact"
-            className="mt-8 inline-flex rounded-md bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-800"
+            className="mt-8 inline-flex rounded-md bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
-            Contact Support
+            {t("privacy.contactSupport")}
           </Link>
         </motion.div>
       </main>

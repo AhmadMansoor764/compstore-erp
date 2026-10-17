@@ -4,7 +4,6 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Boxes,
-  PackagePlus,
   Save,
   X,
   Tag,
@@ -22,6 +21,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useLanguage } from "../../context/LanguageContext";
 
 const API_URL = `${import.meta.env.VITE_API_URL}/api`;
 
@@ -40,6 +40,7 @@ const emptyForm = {
 const EditStock = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t, language, direction } = useLanguage();
 
   const [formData, setFormData] = useState(emptyForm);
   const [categories, setCategories] = useState([]);
@@ -70,20 +71,20 @@ const EditStock = () => {
 
         if (!productResponse.ok) {
           throw new Error(
-            productData.message || "Failed to load this product.",
+            productData.message || t("editStock.errors.failedLoadThisProduct"),
           );
         }
 
         if (!optionsResponse.ok) {
           throw new Error(
-            optionsData.message || "Failed to load categories and suppliers.",
+            optionsData.message || t("editStock.errors.failedLoadOptions"),
           );
         }
 
         const product = productData.product || productData;
 
         if (!product || product.id == null) {
-          throw new Error("Product not found.");
+          throw new Error(t("editStock.errors.notFound"));
         }
 
         if (cancelled) return;
@@ -108,7 +109,7 @@ const EditStock = () => {
         });
       } catch (error) {
         if (!cancelled) {
-          setLoadError(error.message || "Failed to load product.");
+          setLoadError(error.message || t("editStock.errors.failedLoad"));
         }
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -120,7 +121,7 @@ const EditStock = () => {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, t]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -156,7 +157,7 @@ const EditStock = () => {
       purchasePrice === "" ||
       sellingPrice === ""
     ) {
-      toast.error("Please fill in all required fields.");
+      toast.error(t("editStock.validation.fillRequired"));
       return;
     }
 
@@ -171,7 +172,7 @@ const EditStock = () => {
       quantityValue < 0 ||
       minStockValue < 0
     ) {
-      toast.error("Quantity and minimum stock must be non-negative integers.");
+      toast.error(t("editStock.validation.quantity"));
       return;
     }
 
@@ -181,7 +182,7 @@ const EditStock = () => {
       purchasePriceValue < 0 ||
       sellingPriceValue < 0
     ) {
-      toast.error("Prices must be valid non-negative numbers.");
+      toast.error(t("editStock.validation.prices"));
       return;
     }
 
@@ -189,7 +190,7 @@ const EditStock = () => {
       !/^\d+(\.\d{1,2})?$/.test(purchasePrice) ||
       !/^\d+(\.\d{1,2})?$/.test(sellingPrice)
     ) {
-      toast.error("Prices can have up to two decimal places.");
+      toast.error(t("editStock.validation.priceDecimals"));
       return;
     }
 
@@ -218,13 +219,16 @@ const EditStock = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to update product.");
+        throw new Error(
+          data.message || t("editStock.errors.failedUpdateProduct"),
+        );
       }
 
-      toast.success(data.message || "Stock updated successfully.");
+      toast.success(data.message || t("editStock.success.stockUpdated"));
+
       navigate("/dashboard/stock");
     } catch (error) {
-      toast.error(error.message || "Failed to update stock.");
+      toast.error(error.message || t("editStock.errors.failedUpdateStock"));
     } finally {
       setIsSubmitting(false);
     }
@@ -240,8 +244,11 @@ const EditStock = () => {
       ? (estimatedProfit / Number(formData.sellingPrice)) * 100
       : null;
 
+  const numberLocale =
+    language === "fa" ? "fa-AF" : language === "ps" ? "ps-AF" : "en-US";
+
   const formatMoney = (value) =>
-    Number(value || 0).toLocaleString(undefined, {
+    Number(value || 0).toLocaleString(numberLocale, {
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
     });
@@ -254,18 +261,20 @@ const EditStock = () => {
     (supplier) => String(supplier.id) === String(formData.supplier_id),
   );
 
-  // Loading state
   if (isLoading) {
     return (
-      <div className="es-page">
+      <div className="es-page" dir={direction}>
         <style>{EDIT_STOCK_CSS}</style>
 
         <div className="es-state-card">
           <div className="es-loader-icon">
             <LoaderCircle size={25} className="es-spin" />
           </div>
-          <h2>Loading product</h2>
-          <p>Retrieving your product information and inventory options...</p>
+
+          <h2>{t("editStock.loading.title")}</h2>
+
+          <p>{t("editStock.loading.description")}</p>
+
           <div className="es-loading-track">
             <div />
           </div>
@@ -274,10 +283,9 @@ const EditStock = () => {
     );
   }
 
-  // Error state
   if (loadError) {
     return (
-      <div className="es-page">
+      <div className="es-page" dir={direction}>
         <style>{EDIT_STOCK_CSS}</style>
 
         <div className="es-state-card">
@@ -285,7 +293,8 @@ const EditStock = () => {
             <AlertTriangle size={25} />
           </div>
 
-          <h2>Unable to load product</h2>
+          <h2>{t("editStock.errors.title")}</h2>
+
           <p className="es-error-message">{loadError}</p>
 
           <button
@@ -294,7 +303,7 @@ const EditStock = () => {
             className="es-primary-button mt-5"
           >
             <ArrowLeft size={17} />
-            Back to stock
+            {t("editStock.backToStock")}
           </button>
         </div>
       </div>
@@ -307,6 +316,7 @@ const EditStock = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28 }}
       className="es-page mx-auto w-full max-w-6xl"
+      dir={direction}
     >
       <style>{EDIT_STOCK_CSS}</style>
 
@@ -314,23 +324,22 @@ const EditStock = () => {
       <div className="mb-6">
         <Link to="/dashboard/stock" className="es-back-link mb-5">
           <ArrowLeft size={16} />
-          Back to inventory
+          {t("editStock.backToInventory")}
         </Link>
 
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <div className="es-eyebrow mb-2">
               <Sparkles size={13} />
-              Inventory management
+              {t("editStock.inventoryManagement")}
             </div>
 
             <h1 className="text-2xl font-extrabold tracking-tight text-[#182338] sm:text-3xl">
-              Edit stock
+              {t("editStock.title")}
             </h1>
 
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[#718096]">
-              Update product details, manage stock levels, and keep your
-              inventory information accurate.
+              {t("editStock.description")}
             </p>
           </div>
 
@@ -338,8 +347,9 @@ const EditStock = () => {
             <div className="es-product-badge-icon">
               <Package size={17} />
             </div>
+
             <div>
-              <p>Editing product</p>
+              <p>{t("editStock.editingProduct")}</p>
               <span>{formData.sku.trim() || `Product #${id}`}</span>
             </div>
           </div>
@@ -350,25 +360,25 @@ const EditStock = () => {
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <SummaryCard
           icon={Package}
-          label="Product"
-          value={formData.name || "Unnamed product"}
-          subtitle="Inventory item"
+          label={t("editStock.summary.product")}
+          value={formData.name || t("editStock.unnamedProduct")}
+          subtitle={t("editStock.summary.inventoryItem")}
           color="indigo"
         />
 
         <SummaryCard
           icon={Tag}
-          label="Category"
-          value={selectedCategory?.name || "Not selected"}
-          subtitle="Product classification"
+          label={t("editStock.summary.category")}
+          value={selectedCategory?.name || t("editStock.notSelected")}
+          subtitle={t("editStock.summary.productClassification")}
           color="blue"
         />
 
         <SummaryCard
           icon={Truck}
-          label="Supplier"
-          value={selectedSupplier?.name || "No supplier"}
-          subtitle="Supply information"
+          label={t("editStock.summary.supplier")}
+          value={selectedSupplier?.name || t("editStock.noSupplier")}
+          subtitle={t("editStock.summary.supplyInformation")}
           color="emerald"
         />
       </div>
@@ -381,45 +391,49 @@ const EditStock = () => {
           </div>
 
           <div className="min-w-0 flex-1">
-            <h2>Product information</h2>
-            <p>Modify the details for this inventory product.</p>
+            <h2>{t("editStock.productInformation")}</h2>
+            <p>{t("editStock.modifyProduct")}</p>
           </div>
 
           <span className="es-status-badge">
             <span />
-            Editing
+            {t("editStock.editing")}
           </span>
         </div>
 
         <div className="space-y-7 p-5 sm:p-7">
           {/* Section 1 */}
           <section className="es-section">
-            <SectionHeading number="01" title="Basic details" />
+            <SectionHeading
+              number="01"
+              title={t("editStock.sections.basicDetails")}
+            />
 
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
               <FormField
-                label="Product name"
+                label={t("editStock.fields.productName")}
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                placeholder="e.g. Dell Latitude 5420"
+                placeholder={t("editStock.placeholders.productName")}
                 required
                 icon={Package}
               />
 
               <FormField
-                label="SKU"
+                label={t("editStock.fields.sku")}
                 name="sku"
                 value={formData.sku}
                 onChange={handleChange}
-                placeholder="e.g. SKU-1001"
+                placeholder={t("editStock.placeholders.sku")}
                 icon={Hash}
               />
 
               {/* Category */}
               <div>
                 <label htmlFor="category_id" className="es-label">
-                  Category <span className="es-required">*</span>
+                  {t("editStock.fields.category")}{" "}
+                  <span className="es-required">*</span>
                 </label>
 
                 <div className="es-input-wrapper">
@@ -433,7 +447,7 @@ const EditStock = () => {
                     required
                     className="es-input es-input-with-icon es-select"
                   >
-                    <option value="">Select a category</option>
+                    <option value="">{t("editStock.selectCategory")}</option>
 
                     {categories.map((category) => (
                       <option key={category.id} value={category.id}>
@@ -443,15 +457,14 @@ const EditStock = () => {
                   </select>
                 </div>
 
-                <p className="es-help">
-                  Choose the category this product belongs to.
-                </p>
+                <p className="es-help">{t("editStock.help.chooseCategory")}</p>
               </div>
 
               {/* Supplier */}
               <div>
                 <label htmlFor="supplier_id" className="es-label">
-                  Supplier <span className="es-optional">Optional</span>
+                  {t("editStock.fields.supplier")}{" "}
+                  <span className="es-optional">{t("editStock.optional")}</span>
                 </label>
 
                 <div className="es-input-wrapper">
@@ -464,7 +477,7 @@ const EditStock = () => {
                     onChange={handleChange}
                     className="es-input es-input-with-icon es-select"
                   >
-                    <option value="">No supplier</option>
+                    <option value="">{t("editStock.noSupplier")}</option>
 
                     {suppliers.map((supplier) => (
                       <option key={supplier.id} value={supplier.id}>
@@ -474,15 +487,14 @@ const EditStock = () => {
                   </select>
                 </div>
 
-                <p className="es-help">
-                  Link a registered supplier to this product.
-                </p>
+                <p className="es-help">{t("editStock.help.linkSupplier")}</p>
               </div>
 
               {/* Description */}
               <div className="md:col-span-2">
                 <label htmlFor="description" className="es-label">
-                  Description <span className="es-optional">Optional</span>
+                  {t("editStock.fields.description")}{" "}
+                  <span className="es-optional">{t("editStock.optional")}</span>
                 </label>
 
                 <div className="es-input-wrapper">
@@ -494,45 +506,46 @@ const EditStock = () => {
                     rows={4}
                     value={formData.description}
                     onChange={handleChange}
-                    placeholder="Add model specifications, product condition, color, or other useful details..."
+                    placeholder={t("editStock.placeholders.description")}
                     className="es-input es-textarea es-textarea-with-icon"
                   />
                 </div>
 
-                <p className="es-help">
-                  Add details that help you identify this product later.
-                </p>
+                <p className="es-help">{t("editStock.help.description")}</p>
               </div>
             </div>
           </section>
 
           {/* Section 2 */}
           <section className="es-section">
-            <SectionHeading number="02" title="Stock details" />
+            <SectionHeading
+              number="02"
+              title={t("editStock.sections.stockDetails")}
+            />
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <FormField
-                label="Quantity"
+                label={t("editStock.fields.quantity")}
                 name="quantity"
                 type="number"
                 min="0"
                 step="1"
                 value={formData.quantity}
                 onChange={handleChange}
-                placeholder="e.g. 20"
+                placeholder={t("editStock.placeholders.quantity")}
                 required
                 icon={Boxes}
               />
 
               <FormField
-                label="Minimum stock alert"
+                label={t("editStock.fields.minimumStockAlert")}
                 name="minStock"
                 type="number"
                 min="0"
                 step="1"
                 value={formData.minStock}
                 onChange={handleChange}
-                placeholder="e.g. 5"
+                placeholder={t("editStock.placeholders.minStock")}
                 required
                 icon={CircleAlert}
               />
@@ -542,43 +555,44 @@ const EditStock = () => {
               <div className="es-info-icon">
                 <Info size={16} />
               </div>
+
               <p>
-                <strong>Inventory tip</strong>
-                <span>
-                  The minimum stock alert helps you identify products that need
-                  restocking before you run out.
-                </span>
+                <strong>{t("editStock.inventoryTip.title")}</strong>
+                <span>{t("editStock.inventoryTip.description")}</span>
               </p>
             </div>
           </section>
 
           {/* Section 3 */}
           <section className="es-section">
-            <SectionHeading number="03" title="Pricing" />
+            <SectionHeading
+              number="03"
+              title={t("editStock.sections.pricing")}
+            />
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <FormField
-                label="Purchase price"
+                label={t("editStock.fields.purchasePrice")}
                 name="purchasePrice"
                 type="number"
                 min="0"
                 step="0.01"
                 value={formData.purchasePrice}
                 onChange={handleChange}
-                placeholder="e.g. 500"
+                placeholder={t("editStock.placeholders.purchasePrice")}
                 required
                 icon={DollarSign}
               />
 
               <FormField
-                label="Selling price"
+                label={t("editStock.fields.sellingPrice")}
                 name="sellingPrice"
                 type="number"
                 min="0"
                 step="0.01"
                 value={formData.sellingPrice}
                 onChange={handleChange}
-                placeholder="e.g. 650"
+                placeholder={t("editStock.placeholders.sellingPrice")}
                 required
                 icon={DollarSign}
               />
@@ -592,7 +606,9 @@ const EditStock = () => {
                   </div>
 
                   <div>
-                    <p className="es-profit-label">Estimated profit per unit</p>
+                    <p className="es-profit-label">
+                      {t("editStock.estimatedProfit")}
+                    </p>
 
                     <p
                       className={`mt-1 text-2xl font-extrabold tracking-tight ${
@@ -606,7 +622,7 @@ const EditStock = () => {
                     </p>
 
                     <p className="mt-1 text-[11px] text-[#8995a7]">
-                      Selling price minus purchase price
+                      {t("editStock.sellingMinusPurchase")}
                     </p>
                   </div>
                 </div>
@@ -619,7 +635,7 @@ const EditStock = () => {
                         : "es-margin-negative"
                     }`}
                   >
-                    {estimatedMargin.toFixed(1)}% margin
+                    {estimatedMargin.toFixed(1)}% {t("editStock.margin")}
                   </div>
                 )}
               </div>
@@ -631,13 +647,13 @@ const EditStock = () => {
         <div className="es-footer">
           <div className="es-footer-note">
             <CheckCircle2 size={16} />
-            Your changes will be saved to your inventory.
+            {t("editStock.saveNote")}
           </div>
 
           <div className="flex flex-col-reverse gap-3 sm:flex-row">
             <Link to="/dashboard/stock" className="es-secondary-button">
               <X size={16} />
-              Cancel
+              {t("editStock.cancel")}
             </Link>
 
             <button
@@ -650,7 +666,10 @@ const EditStock = () => {
               ) : (
                 <Save size={17} />
               )}
-              {isSubmitting ? "Saving changes..." : "Save changes"}
+
+              {isSubmitting
+                ? t("editStock.saving")
+                : t("editStock.saveChanges")}
             </button>
           </div>
         </div>
@@ -658,7 +677,9 @@ const EditStock = () => {
 
       <p className="mt-4 flex items-center justify-center gap-2 pb-2 text-center text-[10px] text-[#9aa5b5]">
         <Info size={13} />
-        Fields marked <span className="text-rose-500">*</span> are required.
+        {t("editStock.requiredNotePrefix")}{" "}
+        <span className="text-rose-500">*</span>{" "}
+        {t("editStock.requiredNoteSuffix")}
       </p>
     </motion.div>
   );
@@ -698,35 +719,39 @@ const FormField = ({
   step,
   required = false,
   icon: Icon,
-}) => (
-  <div>
-    <label htmlFor={name} className="es-label">
-      {label}
-      {required ? (
-        <span className="es-required">*</span>
-      ) : (
-        <span className="es-optional">Optional</span>
-      )}
-    </label>
+}) => {
+  const { t } = useLanguage();
 
-    <div className="es-input-wrapper">
-      {Icon && <Icon size={17} className="es-input-icon" />}
+  return (
+    <div>
+      <label htmlFor={name} className="es-label">
+        {label}
+        {required ? (
+          <span className="es-required">*</span>
+        ) : (
+          <span className="es-optional">{t("editStock.optional")}</span>
+        )}
+      </label>
 
-      <input
-        id={name}
-        name={name}
-        type={type}
-        min={min}
-        step={step}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        required={required}
-        className={`es-input ${Icon ? "es-input-with-icon" : ""}`}
-      />
+      <div className="es-input-wrapper">
+        {Icon && <Icon size={17} className="es-input-icon" />}
+
+        <input
+          id={name}
+          name={name}
+          type={type}
+          min={min}
+          step={step}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          required={required}
+          className={`es-input ${Icon ? "es-input-with-icon" : ""}`}
+        />
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const EDIT_STOCK_CSS = `
   .es-page {
