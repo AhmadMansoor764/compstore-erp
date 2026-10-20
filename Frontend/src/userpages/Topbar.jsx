@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Menu,
@@ -7,6 +7,7 @@ import {
   CalendarDays,
   ChevronDown,
   CircleUserRound,
+  UsersRound,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -15,15 +16,24 @@ const Topbar = ({ setMobileOpen }) => {
   const [periodOpen, setPeriodOpen] = useState(false);
   const [comingSoon, setComingSoon] = useState(false);
 
+  const [selectedBranch, setSelectedBranch] = useState("main");
+  const [selectedPeriod, setSelectedPeriod] = useState("week");
+
   const { t, direction } = useLanguage();
 
   const handleComingSoon = () => {
     setComingSoon(true);
+  };
 
-    setTimeout(() => {
+  useEffect(() => {
+    if (!comingSoon) return;
+
+    const timeoutId = setTimeout(() => {
       setComingSoon(false);
     }, 3000);
-  };
+
+    return () => clearTimeout(timeoutId);
+  }, [comingSoon]);
 
   const periods = [
     { key: "today", label: t("topbar.periods.today") },
@@ -31,6 +41,36 @@ const Topbar = ({ setMobileOpen }) => {
     { key: "month", label: t("topbar.periods.month") },
     { key: "year", label: t("topbar.periods.year") },
   ];
+
+  const branches = [
+    { key: "main", label: t("topbar.mainBranch") },
+    { key: "second", label: t("topbar.secondBranch") },
+  ];
+
+  const currentBranch =
+    branches.find((branch) => branch.key === selectedBranch)?.label ??
+    t("topbar.mainBranch");
+
+  const currentPeriod =
+    periods.find((period) => period.key === selectedPeriod)?.label ??
+    t("topbar.periods.week");
+
+  const dropdownPosition = direction === "rtl" ? "left-0" : "right-0";
+
+  const dropdownClass = `absolute top-full z-50 mt-2 w-44 rounded-xl border border-slate-200 bg-white p-2 shadow-xl ${dropdownPosition}`;
+
+  const optionClass =
+    "w-full rounded-lg px-3 py-2 text-start text-sm text-slate-700 transition hover:bg-slate-100";
+
+  const selectBranch = (key) => {
+    setSelectedBranch(key);
+    setBranchOpen(false);
+  };
+
+  const selectPeriod = (key) => {
+    setSelectedPeriod(key);
+    setPeriodOpen(false);
+  };
 
   return (
     <>
@@ -50,6 +90,7 @@ const Topbar = ({ setMobileOpen }) => {
         dir={direction}
         className="sticky top-0 z-30 border-b border-[#d5d8e7] bg-white/95 backdrop-blur"
       >
+        {/* Main Topbar */}
         <div className="flex min-h-[82px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           {/* Left Side */}
           <div className="flex min-w-0 items-center gap-3">
@@ -73,35 +114,33 @@ const Topbar = ({ setMobileOpen }) => {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setBranchOpen((prev) => !prev)}
+                onClick={() => {
+                  setBranchOpen((prev) => !prev);
+                  setPeriodOpen(false);
+                }}
                 className="flex h-11 min-w-[178px] items-center justify-between gap-4 rounded-xl border border-[#c4c9df] bg-[#f0f1fb] px-4 text-sm font-medium text-slate-900 transition hover:bg-[#e8eafa]"
                 aria-expanded={branchOpen}
               >
-                <span>{t("topbar.mainBranch")}</span>
+                <span>{currentBranch}</span>
                 <ChevronDown size={18} />
               </button>
 
               {branchOpen && (
-                <div
-                  className={`absolute mt-2 w-full rounded-xl border border-slate-200 bg-white p-2 shadow-xl ${
-                    direction === "rtl" ? "left-0" : "right-0"
-                  }`}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setBranchOpen(false)}
-                    className="w-full rounded-lg px-3 py-2 text-start text-sm hover:bg-slate-100"
-                  >
-                    {t("topbar.mainBranch")}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setBranchOpen(false)}
-                    className="w-full rounded-lg px-3 py-2 text-start text-sm hover:bg-slate-100"
-                  >
-                    {t("topbar.secondBranch")}
-                  </button>
+                <div className={dropdownClass}>
+                  {branches.map((branch) => (
+                    <button
+                      key={branch.key}
+                      type="button"
+                      onClick={() => selectBranch(branch.key)}
+                      className={`${optionClass} ${
+                        selectedBranch === branch.key
+                          ? "bg-blue-50 font-semibold text-blue-700"
+                          : ""
+                      }`}
+                    >
+                      {branch.label}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
@@ -110,26 +149,29 @@ const Topbar = ({ setMobileOpen }) => {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setPeriodOpen((prev) => !prev)}
+                onClick={() => {
+                  setPeriodOpen((prev) => !prev);
+                  setBranchOpen(false);
+                }}
                 className="flex h-11 min-w-[165px] items-center justify-between gap-4 rounded-xl border border-[#c4c9df] bg-[#f0f1fb] px-4 text-sm font-medium text-slate-900 transition hover:bg-[#e8eafa]"
                 aria-expanded={periodOpen}
               >
-                <span>{t("topbar.periods.week")}</span>
+                <span>{currentPeriod}</span>
                 <CalendarDays size={20} />
               </button>
 
               {periodOpen && (
-                <div
-                  className={`absolute mt-2 w-full rounded-xl border border-slate-200 bg-white p-2 shadow-xl ${
-                    direction === "rtl" ? "left-0" : "right-0"
-                  }`}
-                >
+                <div className={dropdownClass}>
                   {periods.map((period) => (
                     <button
-                      type="button"
                       key={period.key}
-                      onClick={() => setPeriodOpen(false)}
-                      className="w-full rounded-lg px-3 py-2 text-start text-sm hover:bg-slate-100"
+                      type="button"
+                      onClick={() => selectPeriod(period.key)}
+                      className={`${optionClass} ${
+                        selectedPeriod === period.key
+                          ? "bg-blue-50 font-semibold text-blue-700"
+                          : ""
+                      }`}
                     >
                       {period.label}
                     </button>
@@ -149,7 +191,6 @@ const Topbar = ({ setMobileOpen }) => {
               title={t("topbar.notifications")}
             >
               <Bell size={23} />
-
               <span
                 className={`absolute top-2 h-2 w-2 rounded-full bg-red-500 ${
                   direction === "rtl" ? "left-2" : "right-2"
@@ -181,7 +222,7 @@ const Topbar = ({ setMobileOpen }) => {
 
           {/* Mobile Actions */}
           <div className="flex items-center gap-2 md:hidden">
-            {/* Mobile Notification Button */}
+            {/* Notification Button */}
             <button
               type="button"
               onClick={handleComingSoon}
@@ -190,7 +231,6 @@ const Topbar = ({ setMobileOpen }) => {
               title={t("topbar.notifications")}
             >
               <Bell size={22} />
-
               <span
                 className={`absolute top-1.5 h-2 w-2 rounded-full bg-red-500 ${
                   direction === "rtl" ? "left-1.5" : "right-1.5"
@@ -198,7 +238,7 @@ const Topbar = ({ setMobileOpen }) => {
               />
             </button>
 
-            {/* Mobile Profile Button */}
+            {/* Profile Button */}
             <Link
               to="/dashboard/profile"
               className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 transition hover:bg-slate-300"
@@ -212,23 +252,84 @@ const Topbar = ({ setMobileOpen }) => {
 
         {/* Mobile Filters */}
         <div className="flex gap-2 overflow-x-auto px-4 pb-4 md:hidden">
-          <button
-            type="button"
-            onClick={handleComingSoon}
-            className="flex shrink-0 items-center gap-3 rounded-xl border border-[#c4c9df] bg-[#f0f1fb] px-4 py-2.5 text-sm font-medium"
-          >
-            {t("topbar.mainBranch")}
-            <ChevronDown size={16} />
-          </button>
+          {/* Mobile Branch Dropdown */}
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setBranchOpen((prev) => !prev);
+                setPeriodOpen(false);
+              }}
+              className="flex items-center gap-3 whitespace-nowrap rounded-xl border border-[#c4c9df] bg-[#f0f1fb] px-4 py-2.5 text-sm font-medium text-slate-900"
+              aria-expanded={branchOpen}
+            >
+              {currentBranch}
+              <ChevronDown size={16} />
+            </button>
 
-          <button
-            type="button"
-            onClick={handleComingSoon}
-            className="flex shrink-0 items-center gap-3 rounded-xl border border-[#c4c9df] bg-[#f0f1fb] px-4 py-2.5 text-sm font-medium"
+            {branchOpen && (
+              <div className={dropdownClass}>
+                {branches.map((branch) => (
+                  <button
+                    key={branch.key}
+                    type="button"
+                    onClick={() => selectBranch(branch.key)}
+                    className={`${optionClass} ${
+                      selectedBranch === branch.key
+                        ? "bg-blue-50 font-semibold text-blue-700"
+                        : ""
+                    }`}
+                  >
+                    {branch.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Mobile Period Dropdown */}
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setPeriodOpen((prev) => !prev);
+                setBranchOpen(false);
+              }}
+              className="flex items-center gap-3 whitespace-nowrap rounded-xl border border-[#c4c9df] bg-[#f0f1fb] px-4 py-2.5 text-sm font-medium text-slate-900"
+              aria-expanded={periodOpen}
+            >
+              {currentPeriod}
+              <CalendarDays size={17} />
+            </button>
+
+            {periodOpen && (
+              <div className={dropdownClass}>
+                {periods.map((period) => (
+                  <button
+                    key={period.key}
+                    type="button"
+                    onClick={() => selectPeriod(period.key)}
+                    className={`${optionClass} ${
+                      selectedPeriod === period.key
+                        ? "bg-blue-50 font-semibold text-blue-700"
+                        : ""
+                    }`}
+                  >
+                    {period.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Suppliers Shortcut */}
+          <Link
+            to="/dashboard/suppliers"
+            className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border border-[#c4c9df] bg-[#f0f1fb] px-4 py-2.5 text-sm font-medium text-slate-900"
           >
-            {t("topbar.periods.week")}
-            <CalendarDays size={17} />
-          </button>
+            <UsersRound size={17} />
+            {t("sidebar.suppliers")}
+          </Link>
         </div>
       </header>
     </>

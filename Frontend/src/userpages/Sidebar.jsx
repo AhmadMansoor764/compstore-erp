@@ -1,7 +1,6 @@
 import React from "react";
 import { NavLink, Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -15,7 +14,6 @@ import {
   X,
   Plus,
 } from "lucide-react";
-
 import { useLanguage } from "../context/LanguageContext";
 
 const navigationItems = [
@@ -31,6 +29,7 @@ const navigationItems = [
 
 const Sidebar = ({ mobileOpen, setMobileOpen }) => {
   const { isRTL } = useLanguage();
+
   const closeMobile = () => setMobileOpen(false);
 
   return (
@@ -38,7 +37,7 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
       {/* Desktop Sidebar */}
       <aside
         dir={isRTL ? "rtl" : "ltr"}
-        className={`hidden min-h-screen  w-[285px] shrink-0 flex-col border-r border-[#c5c9dc] bg-[#f3f4ff] lg:flex ${
+        className={`hidden min-h-screen w-[285px] shrink-0 flex-col border-r border-[#c5c9dc] bg-[#f3f4ff] lg:flex ${
           isRTL ? "border-r-0 border-l" : ""
         }`}
       >
@@ -62,42 +61,8 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
             : `left-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`
         }`}
       >
-        {/* Mobile Header */}
-        <div
-          className={`flex shrink-0 items-center justify-between px-5 py-5 ${
-            isRTL ? "flex-row-reverse" : ""
-          }`}
-        >
-          <div
-            className={`flex items-center gap-3 ${
-              isRTL ? "flex-row-reverse" : ""
-            }`}
-          >
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e1e4f2]">
-              <Store size={24} className="text-[#2563eb]" />
-            </div>
-
-            <div className={isRTL ? "text-right" : "text-left"}>
-              <h1 className="text-lg font-bold text-[#1746b8]">
-                <SidebarText translationKey="mainBranch" />
-              </h1>
-
-              <p className="text-xs font-medium text-slate-700">
-                <SidebarText translationKey="adminTerminal" />
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={closeMobile}
-            aria-label="Close sidebar"
-            className="shrink-0 rounded-lg p-2 text-slate-700 hover:bg-white"
-          >
-            <X size={22} />
-          </button>
-        </div>
-
+        {/* SidebarContent already contains the branch header.
+            Do not add another mobile header here. */}
         <SidebarContent closeMobile={closeMobile} />
       </aside>
     </>
@@ -107,7 +72,6 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
 /* Shared translation component */
 const SidebarText = ({ translationKey }) => {
   const { t } = useLanguage();
-
   return t(`sidebar.${translationKey}`);
 };
 
@@ -143,14 +107,13 @@ const SidebarContent = ({ closeMobile }) => {
       navigate("/login", { replace: true });
     } catch (error) {
       console.error("Logout error:", error);
-
       toast.error(error.message || t("sidebar.logoutError"));
     }
   };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      {/* Branch Header */}
+      {/* Branch Header — displayed only once */}
       <div
         className={`flex shrink-0 items-center gap-4 px-6 py-5 ${
           isRTL ? "flex-row-reverse text-right" : "text-left"
@@ -164,11 +127,22 @@ const SidebarContent = ({ closeMobile }) => {
           <h1 className="text-xl font-bold text-[#1746b8]">
             {t("sidebar.mainBranch")}
           </h1>
-
           <p className="text-sm font-medium tracking-wide text-slate-700">
             {t("sidebar.adminTerminal")}
           </p>
         </div>
+
+        {/* Close button on mobile */}
+        {closeMobile && (
+          <button
+            type="button"
+            onClick={closeMobile}
+            aria-label="Close sidebar"
+            className="shrink-0 rounded-lg p-2 text-slate-700 hover:bg-white lg:hidden"
+          >
+            <X size={22} />
+          </button>
+        )}
       </div>
 
       {/* New Sale Button */}
@@ -240,7 +214,9 @@ const SidebarContent = ({ closeMobile }) => {
           }`}
         >
           <LogOut size={23} className="shrink-0" />
-          <span>{t("sidebar.signOut")}</span>
+          <span>
+            <SidebarText translationKey="signOut" />
+          </span>
         </button>
       </div>
     </div>
