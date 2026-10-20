@@ -805,7 +805,7 @@ const Sales = () => {
                                   {item.name}
                                 </p>
                                 <p className="text-xs text-slate-500">
-                                  {t("sales.qty")}: {item.quantity} ·{" "}
+                                  {t("sales.quantity")}: {item.quantity} ·{" "}
                                   {formatMoney(item.price)} {t("sales.each")}
                                 </p>
                               </div>

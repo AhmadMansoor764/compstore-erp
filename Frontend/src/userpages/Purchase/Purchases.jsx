@@ -87,7 +87,7 @@ const getPurchaseIcon = (status) => {
 };
 
 const API_BASE_URL = (
-  import.meta.env.VITE_API_URL || "http://localhost:3000"
+  import.meta.env.VITE_API_URL || "http://localhost:8000"
 ).replace(/\/+$/, "");
 
 const API_URL = `${API_BASE_URL}/api`;
@@ -761,7 +761,7 @@ const Purchases = () => {
             <div className="relative">
               <Search
                 size={17}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                className={`pointer-events-none absolute ${isRTL ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 text-slate-400`}
               />
 
               <input
@@ -772,7 +772,7 @@ const Purchases = () => {
                   "searchPlaceholder",
                   "Search purchase or product...",
                 )}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 pl-10 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
+                className={`w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 ${isRTL ? "pr-10" : "pl-10"} text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100`}
               />
             </div>
           </div>
@@ -786,14 +786,14 @@ const Purchases = () => {
             <div className="relative">
               <CalendarDays
                 size={17}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                className={`pointer-events-none absolute ${isRTL ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 text-slate-400`}
               />
 
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(event) => setSelectedDate(event.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 pl-10 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
+                className={`w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 ${isRTL ? "pr-10" : "pl-10"} text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100`}
               />
             </div>
           </div>
@@ -805,9 +805,9 @@ const Purchases = () => {
             onChange={setStatusFilter}
             options={[
               { value: "All", label: tr("all", "All") },
-              { value: "Received", label: tr("received", "Received") },
-              { value: "Pending", label: tr("pending", "Pending") },
-              { value: "Cancelled", label: tr("cancelled", "Cancelled") },
+              { value: "Received", label: tr("receivedStatus", "Received") },
+              { value: "Pending", label: tr("pendingStatus", "Pending") },
+              { value: "Cancelled", label: tr("cancelledStatus", "Cancelled") },
             ]}
           />
 
@@ -819,8 +819,8 @@ const Purchases = () => {
             options={[
               { value: "All", label: tr("all", "All") },
               { value: "Paid", label: tr("paid", "Paid") },
-              { value: "Partial", label: tr("partial", "Partial") },
-              { value: "Unpaid", label: tr("unpaid", "Unpaid") },
+              { value: "Partial", label: tr("partialStatus", "Partial") },
+              { value: "Unpaid", label: tr("unpaidStatus", "Unpaid") },
             ]}
           />
         </div>
@@ -841,8 +841,8 @@ const Purchases = () => {
             <p className="mt-1 text-sm text-slate-500">
               {filteredPurchases.length}{" "}
               {filteredPurchases.length === 1
-                ? tr("singlePurchaseFound", "purchase found")
-                : tr("purchaseCount", "purchases found")}
+                ? tr("purchaseFound", "purchase found")
+                : tr("purchaseFound", "purchases found")}
             </p>
           </div>
         </div>
@@ -981,8 +981,8 @@ const Purchases = () => {
                           styles={paymentStatusStyles}
                           icon={getPaymentIcon(purchase.paymentStatus)}
                           label={tr(
-                            purchase.status.toLowerCase(),
-                            purchase.status,
+                            `${purchase.paymentStatus.toLowerCase()}Status`,
+                            purchase.paymentStatus,
                           )}
                         />
                       </div>
@@ -995,8 +995,8 @@ const Purchases = () => {
                         styles={purchaseStatusStyles}
                         icon={getPurchaseIcon(purchase.status)}
                         label={tr(
-                          purchase.paymentStatus.toLowerCase(),
-                          purchase.paymentStatus,
+                          `${purchase.status.toLowerCase()}Status`,
+                          purchase.status,
                         )}
                       />
                     </td>
@@ -1010,28 +1010,34 @@ const Purchases = () => {
                     <td className="px-5 py-4 align-top">
                       <div className="flex justify-end gap-2">
                         <ActionButton
-                          title="View purchase"
+                          title={tr("viewPurchase", "View purchase")}
                           onClick={() => setSelectedPurchase(purchase)}
                         >
                           <Eye size={16} />
                         </ActionButton>
 
                         <ActionButton
-                          title="Edit purchase"
+                          title={tr("editPurchase", "Edit purchase")}
                           onClick={() => handleEditPurchase(purchase)}
                         >
                           <Pencil size={16} />
                         </ActionButton>
 
                         <ActionButton
-                          title="Replace purchase products"
+                          title={tr(
+                            "replaceProducts",
+                            "Replace purchase products",
+                          )}
                           onClick={() => handleReplacePurchase(purchase)}
                         >
                           <RefreshCw size={16} />
                         </ActionButton>
 
                         <ActionButton
-                          title="Return purchase products"
+                          title={tr(
+                            "returnProducts",
+                            "Return purchase products",
+                          )}
                           onClick={() => handleReturnPurchase(purchase)}
                         >
                           <Undo2 size={16} />
@@ -1055,7 +1061,7 @@ const Purchases = () => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="font-bold text-slate-900">
-              {tr("purchaseRecords", "Purchase Records")}
+              {tr("records", "Purchase Records")}
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
@@ -1130,24 +1136,27 @@ const Purchases = () => {
 
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <MobileInfo
-                  label="Date"
+                  label={tr("date", "Date")}
                   value={formatDate(purchase.purchaseDate)}
                 />
 
-                <MobileInfo label="Items" value={purchase.items} />
+                <MobileInfo
+                  label={tr("items", "Items")}
+                  value={purchase.items}
+                />
 
                 <MobileInfo
-                  label="Total"
+                  label={tr("total", "Total")}
                   value={formatMoney(purchase.totalAmount)}
                 />
 
                 <MobileInfo
-                  label="Paid"
+                  label={tr("paid", "Paid")}
                   value={formatMoney(purchase.paidAmount)}
                 />
 
                 <MobileInfo
-                  label="Due"
+                  label={tr("due", "Due")}
                   value={formatMoney(purchase.dueAmount)}
                 />
               </div>
@@ -1224,7 +1233,7 @@ const Purchases = () => {
                   </h2>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    Invoice: {selectedPurchase.invoiceNumber}
+                    {tr("invoice", "Invoice")}: {selectedPurchase.invoiceNumber}
                   </p>
                 </div>
 
@@ -1240,22 +1249,22 @@ const Purchases = () => {
               <div className="max-h-[70vh] space-y-5 overflow-y-auto p-5 sm:p-6">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <DetailItem
-                    label="Supplier"
+                    label={tr("supplier", "Supplier")}
                     value={selectedPurchase.supplier}
                   />
 
                   <DetailItem
-                    label="Purchase Date"
+                    label={tr("purchaseDate", "Purchase Date")}
                     value={formatDate(selectedPurchase.purchaseDate)}
                   />
 
                   <DetailItem
-                    label="Payment Status"
+                    label={tr("paymentStatus", "Payment Status")}
                     value={selectedPurchase.paymentStatus}
                   />
 
                   <DetailItem
-                    label="Purchase Status"
+                    label={tr("purchaseStatus", "Purchase Status")}
                     value={selectedPurchase.status}
                   />
                 </div>
@@ -1263,7 +1272,7 @@ const Purchases = () => {
                 {/* Purchased Products */}
                 <div>
                   <h3 className="mb-3 font-semibold text-slate-900">
-                    Purchased Products
+                    {tr("purchasedProduct", "Purchased Products")}
                   </h3>
 
                   <div className="overflow-hidden rounded-xl border border-slate-200">
@@ -1271,10 +1280,12 @@ const Purchases = () => {
                       <table className="w-full min-w-[500px] text-left text-sm">
                         <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                           <tr>
-                            <th className="px-4 py-3 font-semibold">Product</th>
+                            <th className="px-4 py-3 font-semibold">
+                              {tr("product", "Product")}
+                            </th>
 
                             <th className="px-4 py-3 font-semibold">
-                              Quantity
+                              {tr("quantity", "Quantity")}
                             </th>
 
                             <th className="px-4 py-3 font-semibold">
@@ -1282,7 +1293,7 @@ const Purchases = () => {
                             </th>
 
                             <th className="px-4 py-3 text-right font-semibold">
-                              Total
+                              {tr("total", "Total")}
                             </th>
                           </tr>
                         </thead>
@@ -1315,13 +1326,19 @@ const Purchases = () => {
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <AmountBox
-                    label="Total"
+                    label={tr("total", "Total")}
                     value={selectedPurchase.totalAmount}
                   />
 
-                  <AmountBox label="Paid" value={selectedPurchase.paidAmount} />
+                  <AmountBox
+                    label={tr("paid", "Paid")}
+                    value={selectedPurchase.paidAmount}
+                  />
 
-                  <AmountBox label="Due" value={selectedPurchase.dueAmount} />
+                  <AmountBox
+                    label={tr("due", "Due")}
+                    value={selectedPurchase.dueAmount}
+                  />
                 </div>
 
                 {/* Modal Actions */}
@@ -1347,7 +1364,7 @@ const Purchases = () => {
                     className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-200 px-4 py-3 text-sm font-semibold text-amber-600 transition hover:bg-amber-50"
                   >
                     <RefreshCw size={17} />
-                    Replace
+                    {tr("replace", "Replace")}
                   </button>
 
                   <button
@@ -1359,7 +1376,7 @@ const Purchases = () => {
                     className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 px-4 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
                   >
                     <Undo2 size={17} />
-                    Return
+                    {tr("return", "Return")}
                   </button>
                 </div>
               </div>
@@ -1380,7 +1397,7 @@ const Purchases = () => {
               <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
                 <div>
                   <h2 className="text-xl font-bold text-slate-900">
-                    Edit Purchase
+                    {tr("editTitle", "Edit Purchase")}
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
                     {editingPurchase.id}
@@ -1445,7 +1462,7 @@ const Purchases = () => {
 
                     <div>
                       <label className="mb-2 block text-sm font-semibold text-slate-700">
-                        Purchase Date
+                        {tr("purchaseDate", "Purchase Date")}
                       </label>
                       <input
                         type="date"
@@ -1460,7 +1477,7 @@ const Purchases = () => {
 
                     <div>
                       <label className="mb-2 block text-sm font-semibold text-slate-700">
-                        Purchase Status
+                        {tr("purchaseStatus", "Purchase Status")}
                       </label>
                       <select
                         value={editingPurchase.status}
@@ -1470,10 +1487,16 @@ const Purchases = () => {
                         disabled={editingPurchase.status === "Cancelled"}
                         className="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm outline-none focus:border-blue-500 disabled:bg-slate-100"
                       >
-                        <option value="Pending">Pending</option>
-                        <option value="Received">Received</option>
+                        <option value="Pending">
+                          {tr("pendingStatus", "Pending")}
+                        </option>
+                        <option value="Received">
+                          {tr("receivedStatus", "Received")}
+                        </option>
                         {editingPurchase.status === "Cancelled" && (
-                          <option value="Cancelled">Cancelled</option>
+                          <option value="Cancelled">
+                            {tr("cancelledStatus", "Cancelled")}
+                          </option>
                         )}
                       </select>
                       <p className="mt-1 text-xs text-slate-500">
@@ -1526,7 +1549,7 @@ const Purchases = () => {
 
                             <div className="sm:col-span-2">
                               <label className="mb-1 block text-xs font-semibold text-slate-600">
-                                Quantity
+                                {tr("quantity", "Quantity")}
                               </label>
                               <input
                                 required
@@ -1547,7 +1570,7 @@ const Purchases = () => {
 
                             <div className="sm:col-span-3">
                               <label className="mb-1 block text-xs font-semibold text-slate-600">
-                                Unit Price (AFN)
+                                {tr("unitPrice", "Unit Price")} (AFN)
                               </label>
                               <input
                                 required
@@ -1568,13 +1591,13 @@ const Purchases = () => {
                                 onClick={() => removeEditItem(index)}
                                 className="w-full rounded-lg border border-rose-200 px-3 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50"
                               >
-                                Remove
+                                {tr("remove", "Remove")}
                               </button>
                             </div>
                           </div>
 
                           <p className="mt-3 text-right text-sm font-semibold text-slate-700">
-                            Line total:{" "}
+                            {tr("lineTotal", "Line total")}:{" "}
                             {formatMoney(
                               Math.max(0, Number(item.quantity) || 0) *
                                 Math.max(0, Number(item.price) || 0),
@@ -1622,7 +1645,7 @@ const Purchases = () => {
                         </span>
                       </div>
                       <p className="mt-2 text-xs text-slate-500">
-                        Payment status:{" "}
+                        {tr("paymentStatus", "Payment Status")}:{" "}
                         {Number(editingPurchase.paidAmount) === editTotal
                           ? "Paid"
                           : Number(editingPurchase.paidAmount) > 0
@@ -1712,7 +1735,7 @@ const Purchases = () => {
 
                   <div>
                     <label className="mb-2 block text-sm font-semibold text-slate-700">
-                      Purchase item
+                      {tr("purchaseItem", "Purchase item")}
                     </label>
                     <select
                       required
@@ -1740,7 +1763,7 @@ const Purchases = () => {
 
                       <div>
                         <label className="mb-1 block text-sm font-semibold text-slate-700">
-                          New computer / product name
+                          {tr("newProductName", "New computer / product name")}
                         </label>
                         <input
                           required
@@ -1758,7 +1781,7 @@ const Purchases = () => {
 
                       <div>
                         <label className="mb-1 block text-sm font-semibold text-slate-700">
-                          New quantity
+                          {tr("newQuantity", "New quantity")}
                         </label>
                         <input
                           required
@@ -1783,7 +1806,7 @@ const Purchases = () => {
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
                           <label className="mb-1 block text-sm font-semibold text-slate-700">
-                            SKU / product code
+                            {tr("sku", "SKU / product code")}
                           </label>
                           <input
                             required
@@ -1801,7 +1824,7 @@ const Purchases = () => {
 
                         <div>
                           <label className="mb-1 block text-sm font-semibold text-slate-700">
-                            Category
+                            {tr("category", "Category")}
                           </label>
                           <select
                             required
@@ -1814,7 +1837,9 @@ const Purchases = () => {
                             }
                             className="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm"
                           >
-                            <option value="">Select category</option>
+                            <option value="">
+                              {tr("selectCategory", "Select category")}
+                            </option>
                             {categories.map((category) => (
                               <option key={category.id} value={category.id}>
                                 {category.name}
@@ -1831,7 +1856,10 @@ const Purchases = () => {
 
                         <div>
                           <label className="mb-1 block text-sm font-semibold text-slate-700">
-                            New purchase price (AFN per unit)
+                            {tr(
+                              "newPurchasePrice",
+                              "New purchase price (AFN per unit)",
+                            )}
                           </label>
                           <input
                             required
@@ -1851,7 +1879,7 @@ const Purchases = () => {
 
                         <div>
                           <label className="mb-1 block text-sm font-semibold text-slate-700">
-                            Selling price (AFN per unit)
+                            {tr("sellingPrice", "Selling price (AFN per unit)")}
                           </label>
                           <input
                             required
@@ -1872,7 +1900,10 @@ const Purchases = () => {
 
                       <div>
                         <label className="mb-1 block text-sm font-semibold text-slate-700">
-                          Description / specifications
+                          {tr(
+                            "descriptionSpecifications",
+                            "Description / specifications",
+                          )}
                         </label>
                         <textarea
                           rows={3}
@@ -1890,7 +1921,7 @@ const Purchases = () => {
 
                       <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                         <p className="text-sm text-slate-600">
-                          Original line total:{" "}
+                          {tr("originalLineTotal", "Original line total")}:{" "}
                           <strong>
                             {formatMoney(
                               (Number(
@@ -1905,7 +1936,8 @@ const Purchases = () => {
                           </strong>
                         </p>
                         <p className="mt-1 text-sm text-slate-600">
-                          Replacement line total:{" "}
+                          {tr("replacementLineTotal", "Replacement line total")}
+                          :{" "}
                           <strong>
                             {formatMoney(
                               (Number(replacement.purchase_price) || 0) *
@@ -1915,7 +1947,7 @@ const Purchases = () => {
                         </p>
 
                         <p className="mt-2 text-sm font-semibold text-slate-900">
-                          Price difference:{" "}
+                          {tr("priceDifference", "Price difference")}:{" "}
                           {formatMoney(
                             (Number(replacement.purchase_price) || 0) *
                               (Number(replacement.quantity) || 0) -
@@ -1931,8 +1963,10 @@ const Purchases = () => {
                         </p>
 
                         <p className="mt-1 text-xs text-slate-500">
-                          A positive difference reduces store balance; a
-                          negative difference credits it.
+                          {tr(
+                            "priceDifferenceInfo",
+                            "A positive difference reduces store balance; a negative difference credits it.",
+                          )}
                         </p>
                       </div>
                     </>
@@ -1941,7 +1975,7 @@ const Purchases = () => {
                   {actionType === "return" && (
                     <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
                       <p className="font-semibold text-rose-800">
-                        Confirm return
+                        {tr("confirmReturnTitle", "Confirm return")}
                       </p>
                       <p className="mt-1 text-sm text-rose-700">
                         The selected purchase line will be deleted. The product
@@ -1973,7 +2007,7 @@ const Purchases = () => {
                     disabled={savingAction}
                     className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                   >
-                    Cancel
+                    {tr("cancel", "Cancel")}
                   </button>
                   <button
                     type="submit"

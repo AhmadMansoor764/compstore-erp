@@ -173,7 +173,9 @@ const ProductActions = ({ product, onDelete, onNavigate, t, direction }) => (
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: -5 }}
           transition={{ duration: 0.15 }}
-          className={`absolute top-12 z-30 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10 ${
+          className={`absolute ${
+            onNavigate.openUp ? "bottom-12" : "top-12"
+          } z-50 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10 ${
             direction === "rtl" ? "left-0 text-right" : "right-0 text-left"
           }`}
         >

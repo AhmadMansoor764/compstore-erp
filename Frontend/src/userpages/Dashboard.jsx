@@ -57,19 +57,35 @@ const formatMoney = (value) =>
   })}`;
 
 const DASHBOARD_CSS = `
+
 .smd {
   --smd-border: #e5e9f2;
   --smd-muted: #6f7c91;
+
   container: smd / inline-size;
   min-width: 0;
   padding: 28px;
   border-radius: 28px;
   background: #f5f7fb;
   color: #182338;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.5;
   color-scheme: light;
+
+  max-height: 100vh;
+  overflow-y: auto;
+
+  /* Hide scrollbar but keep scrolling enabled */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
+
+.smd::-webkit-scrollbar {
+  display: none;
+}
+
 
 .smd, .smd * { box-sizing: border-box; }
 :where(.smd h1, .smd h2, .smd h3, .smd p) { margin: 0; }

@@ -1071,10 +1071,6 @@ const translations = {
         replaceSuccess: "Purchase item replaced successfully.",
       },
 
-      // Keep your existing purchases.add object here.
-    },
-
-    purchases: {
       add: {
         inventory: "Inventory Management",
         purchases: "Purchases",
@@ -1151,6 +1147,7 @@ const translations = {
         },
       },
     },
+
     expenses: {
       financialManagement: "Financial Management",
       title: "Expenses",
@@ -1882,6 +1879,21 @@ const translations = {
       storeOperations: "عملیات فروشگاه",
       loading: "در حال بارگذاری",
       loadingStat: "در حال بارگذاری آمار",
+      receivedPurchases: "خریدهای دریافت‌شده",
+      totalDue: "مجموع بدهی",
+      paidAmount: "مبلغ پرداخت‌شده",
+      totalPurchases: "مجموع خریدها",
+
+      filters: "فیلترهای خرید",
+      paymentStatus: "وضعیت پرداخت",
+      purchaseStatus: "وضعیت خرید",
+      purchaseDate: "تاریخ خرید",
+      search: "جستجو",
+      searchPlaceholder: "جستجوی خرید یا کالا...",
+
+      records: "سوابق خرید",
+      purchaseFound: "خرید پیدا شد",
+      purchasesFound: "خرید پیدا شد",
       errors: {
         sessionExpired:
           "ممکن است نشست شما منقضی شده باشد. لطفاً دوباره وارد شوید.",
@@ -2552,95 +2564,188 @@ const translations = {
     },
 
     purchases: {
-      // Existing purchases page translations
-      loading: "در حال بارگذاری خریدها...",
+      loading: "در حال بارگذاری خریداری‌ها...",
       tryAgain: "دوباره تلاش کنید",
-      inventoryManagement: "مدیریت موجودی",
-      purchases: "خریدها",
-      description:
-        "خریدهای تأمین‌کنندگان را مدیریت و پرداخت‌های خود را پیگیری کنید.",
-      newPurchase: "خرید جدید",
+      inventoryManagement: "مدیریت اجناس",
+      purchases: "خریداری‌ها",
+      description: "خریداری‌ها و پرداخت‌های عرضه‌کنندگان خود را مدیریت کنید.",
+      newPurchase: "خریداری جدید",
 
-      // ... keep all your other existing purchases page keys here ...
+      // Summary
+      totalPurchases: "مجموع خریداری‌ها",
+      purchasesOn: "خریداری‌ها در",
+      allPurchaseRecords: "تمام سوابق خریداری",
+      paidAmount: "مبلغ پرداخت‌شده",
+      amountPaidToSuppliers: "مبلغ پرداخت‌شده به عرضه‌کنندگان",
+      totalDue: "مجموع باقی‌داری",
+      outstandingSupplierPayments: "پرداخت‌های باقی‌مانده به عرضه‌کنندگان",
+      receivedPurchases: "خریداری‌های دریافت‌شده",
+      successfullyReceived: "خریداری‌هایی که به موفقیت دریافت شده‌اند",
 
-      errors: {
-        // Keep all your existing purchases page error translations here.
-      },
+      // Filters
+      filters: "فلترها",
+      search: "جستجو",
+      searchPlaceholder: "جستجو بر اساس نمبر بل، نام عرضه‌کننده یا جنس...",
+      purchaseDate: "تاریخ خریداری",
+      purchaseStatus: "وضعیت خریداری",
+      paymentStatus: "وضعیت پرداخت",
+      all: "همه",
 
-      // Add-purchase page translations
+      // Status labels
+      receivedStatus: "دریافت‌شده",
+      pendingStatus: "در انتظار",
+      cancelledStatus: "لغوشده",
+      paid: "پرداخت‌شده",
+      partialStatus: "قسمتی پرداخت‌شده",
+      unpaidStatus: "پرداخت‌نشده",
+
+      // Table and mobile cards
+      records: "سوابق",
+      purchaseFound: "خریداری پیدا شد",
+      purchase: "خریداری",
+      purchasedProduct: "جنس خریداری‌شده",
+      unitPrice: "قیمت فی دانه",
+      date: "تاریخ",
+      totalUnits: "مجموع تعداد",
+      payment: "پرداخت",
+      status: "وضعیت",
+      total: "مجموع",
+      actions: "عملیات",
+      quantity: "تعداد",
+      due: "باقی‌داری",
+      invoice: "بل خریداری",
+      perUnit: "فی دانه",
+      items: "جنس‌ها",
+
+      // Actions
+      viewPurchase: "مشاهده خریداری",
+      editPurchase: "ویرایش خریداری",
+      replaceProducts: "تبدیل اجناس",
+      returnProducts: "برگشت اجناس",
+      view: "مشاهده",
+      edit: "ویرایش",
+      replace: "تبدیل",
+      return: "برگشت",
+
+      // Empty states
+      noPurchases: "هنوز هیچ خریداری ثبت نشده است",
+      noMatchingRecords: "هیچ خریداری مطابق جستجو یا فلترهای شما پیدا نشد.",
+
+      // Purchase details
+      details: "جزئیات خریداری",
+      supplier: "عرضه‌کننده",
+      purchasedProducts: "اجناس خریداری‌شده",
+      product: "جنس",
+
+      // Edit purchase modal
+      editTitle: "ویرایش خریداری",
+      selectSupplier: "عرضه‌کننده را انتخاب کنید",
+      purchaseItems: "اجناس خریداری‌شده",
+      addItem: "افزودن جنس",
+      itemName: "نام جنس",
+      remove: "حذف",
+      lineTotal: "مجموع قیمت جنس",
+      amountPaid: "مبلغ پرداخت‌شده",
+      purchaseTotal: "مجموع خریداری",
+      remainingDue: "باقی‌داری",
+      notes: "یادداشت‌ها",
+      cancel: "لغو",
+      saving: "در حال ثبت...",
+      saveChanges: "ذخیره تغییرات",
+
+      // Replace and return modals
+      replaceItem: "تبدیل جنس",
+      returnItem: "برگشت جنس",
+      purchaseItem: "جنس خریداری‌شده",
+      newProductName: "نام جنس جدید",
+      newQuantity: "تعداد جدید",
+      sku: "کُد جنس (SKU)",
+      category: "دسته‌بندی",
+      selectCategory: "دسته‌بندی را انتخاب کنید",
+      newPurchasePrice: "قیمت خریداری جدید",
+      sellingPrice: "قیمت فروش",
+      descriptionSpecifications: "توضیحات و مشخصات",
+      originalLineTotal: "مجموع قیمت اصلی",
+      replacementLineTotal: "مجموع قیمت جنس جایگزین",
+      priceDifference: "تفاوت قیمت",
+      priceDifferenceInfo: "تفاوت قیمت بین جنس اصلی و جنس جایگزین",
+      confirmReturnTitle: "تأیید برگشت جنس",
+      reason: "دلیل",
+      processing: "در حال اجرا...",
+      confirmReplacement: "تأیید تبدیل جنس",
+      confirmReturn: "تأیید برگشت جنس",
+
+      // Add purchase page
       add: {
-        inventory: "مدیریت موجودی",
-        purchases: "خریدها",
-        newPurchase: "خرید جدید",
-        title: "ثبت خرید جدید",
-        description:
-          "خرید جدید از تأمین‌کننده را ثبت کرده و پرداخت‌ها را پیگیری کنید.",
-        backToPurchases: "بازگشت به خریدها",
+        inventory: "مدیریت اجناس",
+        purchases: "خریداری‌ها",
+        newPurchase: "خریداری جدید",
+        title: "ثبت خریداری جدید",
+        description: "جزئیات خریداری جدید را وارد کنید.",
+        backToPurchases: "بازگشت به خریداری‌ها",
 
-        supplierInformation: "اطلاعات تأمین‌کننده",
-        supplierDescription:
-          "تأمین‌کننده را انتخاب کرده و اطلاعات خرید را وارد کنید.",
-        supplierName: "نام تأمین‌کننده",
-        loadingSuppliers: "در حال بارگذاری تأمین‌کنندگان...",
-        noSuppliers: "تأمین‌کننده‌ای موجود نیست",
-        selectSupplier: "انتخاب تأمین‌کننده",
-        noSuppliersHint: "پیش از ثبت خرید، یک تأمین‌کننده اضافه کنید.",
-        invoiceNumber: "شماره فاکتور",
+        supplierInformation: "معلومات عرضه‌کننده",
+        supplierDescription: "عرضه‌کننده و معلومات بل خریداری را وارد کنید.",
+        supplierName: "نام عرضه‌کننده",
+        loadingSuppliers: "در حال بارگذاری عرضه‌کنندگان...",
+        noSuppliers: "هیچ عرضه‌کننده‌ای موجود نیست",
+        selectSupplier: "عرضه‌کننده را انتخاب کنید",
+        noSuppliersHint: "برای ادامه، نخست یک عرضه‌کننده اضافه کنید.",
+        invoiceNumber: "نمبر بل",
         optional: "اختیاری",
-        purchaseDate: "تاریخ خرید",
-        purchaseStatus: "وضعیت خرید",
+        purchaseDate: "تاریخ خریداری",
+        purchaseStatus: "وضعیت خریداری",
 
-        purchasedProducts: "محصولات خریداری‌شده",
-        productsDescription: "محصولات شامل این خرید را اضافه کنید.",
-        addProduct: "افزودن محصول",
-        product: "محصول",
+        purchasedProducts: "اجناس خریداری‌شده",
+        productsDescription: "اجناسی را که خریداری کرده‌اید، اضافه کنید.",
+        addProduct: "افزودن جنس",
+        product: "جنس",
         remove: "حذف",
-        productName: "نام محصول",
+        productName: "نام جنس",
         quantity: "تعداد",
-        unitPrice: "قیمت واحد",
-        productTotal: "مجموع قیمت محصول",
+        unitPrice: "قیمت فی دانه",
+        productTotal: "مجموع قیمت جنس",
 
-        paymentInformation: "اطلاعات پرداخت",
-        paymentDescription: "مبلغ پرداخت‌شده و یادداشت‌های اضافی را وارد کنید.",
+        paymentInformation: "معلومات پرداخت",
+        paymentDescription: "مبلغ پرداخت‌شده و باقی‌داری را مشخص کنید.",
         paidAmount: "مبلغ پرداخت‌شده",
         notes: "یادداشت‌ها",
-        notesPlaceholder: "یادداشت‌هایی درباره این خرید وارد کنید...",
+        notesPlaceholder: "یادداشت‌های اضافی در مورد خریداری...",
 
-        purchaseSummary: "خلاصه خرید",
-        totalItems: "تعداد کل اقلام",
-        totalAmount: "مبلغ کل",
+        purchaseSummary: "خلاصه خریداری",
+        totalItems: "مجموع تعداد اجناس",
+        totalAmount: "مجموع مبلغ",
         dueAmount: "مبلغ باقی‌مانده",
         paymentStatus: "وضعیت پرداخت",
 
         cancel: "لغو",
-        saving: "در حال ذخیره...",
-        savePurchase: "ذخیره خرید",
-
-        success: "خرید با موفقیت ثبت شد.",
+        saving: "در حال ثبت...",
+        savePurchase: "ثبت خریداری",
+        success: "خریداری با موفقیت ثبت شد.",
 
         status: {
           received: "دریافت‌شده",
           pending: "در انتظار",
           cancelled: "لغوشده",
           paid: "پرداخت‌شده",
-          partial: "پرداخت جزئی",
+          partial: "قسمتی پرداخت‌شده",
           unpaid: "پرداخت‌نشده",
         },
 
         errors: {
-          loadSuppliers: "بارگذاری تأمین‌کنندگان ناموفق بود.",
-          unableLoadSuppliers: "امکان بارگذاری تأمین‌کنندگان وجود ندارد.",
-          selectSupplier: "لطفاً یک تأمین‌کننده انتخاب کنید.",
-          validDate: "لطفاً تاریخ معتبر خرید را وارد کنید.",
-          validStatus: "لطفاً وضعیت معتبر خرید را انتخاب کنید.",
-          addProduct: "لطفاً حداقل یک محصول اضافه کنید.",
-          invalidProduct: "نام معتبر محصول، تعداد صحیح و قیمت معتبر وارد کنید.",
-          invalidPaidAmount:
-            "لطفاً مبلغ پرداختی معتبر با حداکثر دو رقم اعشار وارد کنید.",
+          loadSuppliers: "بارگذاری عرضه‌کنندگان ناکام شد.",
+          unableLoadSuppliers: "بارگذاری عرضه‌کنندگان ممکن نشد.",
+          selectSupplier: "لطفاً یک عرضه‌کننده را انتخاب کنید.",
+          validDate: "لطفاً یک تاریخ معتبر انتخاب کنید.",
+          validStatus: "لطفاً وضعیت معتبر خریداری را انتخاب کنید.",
+          addProduct: "لطفاً حداقل یک جنس اضافه کنید.",
+          invalidProduct:
+            "لطفاً نام، تعداد و قیمت معتبر برای هر جنس وارد کنید.",
+          invalidPaidAmount: "لطفاً مبلغ پرداخت‌شده معتبر وارد کنید.",
           paidExceedsTotal:
-            "مبلغ پرداخت‌شده نمی‌تواند بیشتر از مبلغ کل خرید باشد.",
-          createPurchase: "ایجاد خرید ناموفق بود.",
-          unableSavePurchase: "امکان ذخیره خرید وجود ندارد.",
+            "مبلغ پرداخت‌شده نمی‌تواند از مجموع خریداری بیشتر باشد.",
+          createPurchase: "ثبت خریداری ناکام شد.",
+          unableSavePurchase: "ذخیره خریداری ممکن نشد.",
         },
       },
     },
@@ -4164,10 +4269,6 @@ const translations = {
         replaceSuccess: "د پېرودنې توکی په بریالیتوب بدل شو.",
       },
 
-      // Keep your existing purchases.add object here.
-    },
-
-    purchases: {
       add: {
         inventory: "د موجودۍ مدیریت",
         purchases: "پېرودونه",

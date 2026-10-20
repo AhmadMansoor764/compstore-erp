@@ -432,8 +432,30 @@ const AddSale = () => {
                           {item.name}
                         </td>
 
-                        <td className="px-3 py-4 text-slate-600">
-                          ${item.price.toFixed(2)}
+                        <td className="px-3 py-4">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.price}
+                            onChange={(event) => {
+                              const value = event.target.value;
+
+                              setSaleItems((currentItems) =>
+                                currentItems.map((saleItem) =>
+                                  String(saleItem.productId) ===
+                                  String(item.productId)
+                                    ? {
+                                        ...saleItem,
+                                        price: value === "" ? 0 : Number(value),
+                                      }
+                                    : saleItem,
+                                ),
+                              );
+                            }}
+                            aria-label={`${t("addSale.price")}: ${item.name}`}
+                            className="w-28 rounded-lg border border-slate-200 px-2 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                          />
                         </td>
 
                         <td className="px-3 py-4">
@@ -455,11 +477,9 @@ const AddSale = () => {
                             className="w-20 rounded-lg border border-slate-200 px-2 py-2"
                           />
                         </td>
-
                         <td className="px-3 py-4 font-semibold text-slate-900">
                           ${(item.price * item.quantity).toFixed(2)}
                         </td>
-
                         <td className="px-3 py-4">
                           <button
                             type="button"
