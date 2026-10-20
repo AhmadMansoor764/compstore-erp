@@ -175,6 +175,19 @@ const translations = {
       showPassword: "Show password",
       hidePassword: "Hide password",
       rememberNote: "Remember me",
+      revenue: "Total Revenue",
+      days: {
+        Mon: "Mon",
+        Tue: "Tue",
+        Wed: "Wed",
+        Thu: "Thu",
+        Fri: "Fri",
+        Sat: "Sat",
+        Sun: "Sun",
+      },
+      visualTitle: "Manage Your Store Smarter",
+      visualDescription:
+        "Track sales, manage inventory, monitor expenses, and grow your business — all in one place.",
     },
 
     signup: {
@@ -1787,6 +1800,20 @@ const translations = {
       showPassword: "نمایش رمز عبور",
       hidePassword: "پنهان کردن رمز عبور",
       rememberNote: "مرا به خاطر بسپار",
+
+      revenue: "درآمد کل",
+      days: {
+        Mon: "دوشنبه",
+        Tue: "سه‌شنبه",
+        Wed: "چهارشنبه",
+        Thu: "پنج‌شنبه",
+        Fri: "جمعه",
+        Sat: "شنبه",
+        Sun: "یکشنبه",
+      },
+      visualTitle: "فروشگاه خود را هوشمندانه‌تر مدیریت کنید",
+      visualDescription:
+        "فروش‌ها را پیگیری کنید، موجودی را مدیریت کنید، هزینه‌ها را زیر نظر بگیرید و کسب‌وکار خود را در یک مکان گسترش دهید.",
     },
 
     signup: {
@@ -1820,9 +1847,7 @@ const translations = {
       showPassword: "نمایش رمز عبور",
       hidePassword: "پنهان کردن رمز عبور",
       passwordHint: "برای محافظت از حساب خود از رمز عبور قوی استفاده کنید.",
-    },
 
-    authBrand: {
       signupHeadline: "به جمع هزاران صاحب فروشگاه بپیوندید.",
       signupDescription:
         "موجودی خود را مدیریت کنید، فروش را بهینه سازید و با راهکار جامع ERP کسب‌وکار خود را توسعه دهید.",
@@ -3380,6 +3405,20 @@ const translations = {
       showPassword: "پټنوم ښکاره کړئ",
       hidePassword: "پټنوم پټ کړئ",
       rememberNote: "ما په یاد وساته",
+
+      revenue: "ټول عاید",
+      days: {
+        Mon: "دوشنبه",
+        Tue: "سه‌شنبه",
+        Wed: "چهارشنبه",
+        Thu: "پنجشنبه",
+        Fri: "جمعه",
+        Sat: "شنبه",
+        Sun: "یکشنبه",
+      },
+      visualTitle: "خپل پلورنځی په هوښیار ډول اداره کړئ",
+      visualDescription:
+        "پلور تعقیب کړئ، موجودي اداره کړئ، لګښتونه وڅارئ او خپل کاروبار په یوه ځای کې پراخ کړئ.",
     },
 
     signup: {
@@ -3413,9 +3452,7 @@ const translations = {
       showPassword: "پټنوم ښکاره کړئ",
       hidePassword: "پټنوم پټ کړئ",
       passwordHint: "د خپل حساب د ساتنې لپاره قوي پټنوم وکاروئ.",
-    },
 
-    authBrand: {
       signupHeadline: "د زرګونو پلورنځیو له مالکانو سره یوځای شئ.",
       signupDescription:
         "خپله موجودي مدیریت کړئ، پلور په اغېزمن ډول تنظیم کړئ او د ERP بشپړ حل په مرسته خپل کاروبار پراخ کړئ.",

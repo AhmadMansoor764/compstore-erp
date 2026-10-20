@@ -18,7 +18,7 @@ import { useLanguage } from "../context/LanguageContext";
 
 const Signup = () => {
   const navigate = useNavigate();
-  const { language, changeLanguage, isRTL, t } = useLanguage();
+  const { language, direction, changeLanguage, isRTL, t } = useLanguage();
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -193,7 +193,8 @@ const Signup = () => {
 
   return (
     <main
-      dir={isRTL ? "rtl" : "ltr"}
+      dir={direction}
+      lang={language}
       className="min-h-screen w-full bg-white text-slate-900"
     >
       <div className="grid min-h-screen lg:grid-cols-2">
@@ -238,7 +239,9 @@ const Signup = () => {
           </motion.div>
 
           {/* LEFT CONTENT */}
-          <div className="relative z-10 flex flex-1 flex-col justify-between px-9 pb-9 pt-20 xl:px-10 xl:pb-10">
+          <div
+            className={`relative z-10 flex flex-1 flex-col justify-between px-9 pb-9 pt-20 xl:px-10 xl:pb-10 ${isRTL ? "text-right" : "text-left"}`}
+          >
             <motion.div
               variants={containerVariants}
               initial="hidden"
@@ -249,14 +252,14 @@ const Signup = () => {
                 variants={itemVariants}
                 className="text-[40px] font-bold leading-[1.12] tracking-[-0.04em] text-slate-950 xl:text-[42px]"
               >
-                {t("signup.brandHeadline")}
+                {t("signup.signupHeadline")}
               </motion.h1>
 
               <motion.p
                 variants={itemVariants}
                 className="mt-5 max-w-[550px] text-[17px] leading-7 text-slate-700"
               >
-                {t("signup.brandDescription")}
+                {t("signup.signupDescription")}
               </motion.p>
             </motion.div>
 
@@ -287,15 +290,20 @@ const Signup = () => {
                 ))}
               </div>
 
-              <p className="mt-5 text-[15px] italic leading-6 text-slate-800">
+              <p
+                className={`mt-5 text-[15px] italic leading-6 text-slate-800 ${isRTL ? "text-right" : "text-left"}`}
+              >
                 {t("signup.testimonial")}
               </p>
 
-              <div className="mt-6 flex items-center gap-3">
+              <div
+                className={`mt-6 flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
+              >
                 <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-slate-200">
                   <User size={21} className="text-slate-500" />
                 </div>
-                <div>
+
+                <div className={isRTL ? "text-right" : "text-left"}>
                   <p className="text-[14px] font-semibold tracking-wide text-slate-900">
                     {t("signup.testimonialName")}
                   </p>
@@ -333,9 +341,7 @@ const Signup = () => {
                 </span>
                 <ChevronDown
                   size={14}
-                  className={`transition-transform duration-200 ${
-                    showLanguageMenu ? "rotate-180" : ""
-                  }`}
+                  className={`transition-transform duration-200 ${showLanguageMenu ? "rotate-180" : ""}`}
                 />
               </button>
 
@@ -375,13 +381,14 @@ const Signup = () => {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="w-full max-w-[500px]"
+              className={`w-full max-w-[500px] ${isRTL ? "text-right" : "text-left"}`}
             >
               {/* HEADING */}
               <motion.div variants={itemVariants}>
                 <h2 className="text-[32px] font-bold leading-tight tracking-[-0.035em] text-slate-950 sm:text-[34px]">
                   {t("signup.title")}
                 </h2>
+
                 <p className="mt-2 text-sm leading-6 text-slate-600">
                   {t("signup.description")}
                 </p>
@@ -389,6 +396,7 @@ const Signup = () => {
 
               {/* SIGNUP FORM */}
               <motion.form
+                dir={direction}
                 variants={itemVariants}
                 onSubmit={handleSubmit(onSubmit)}
                 noValidate
@@ -398,7 +406,7 @@ const Signup = () => {
                 <div>
                   <label
                     htmlFor="fullName"
-                    className="mb-2 block text-[13px] font-semibold tracking-[0.02em] text-slate-800"
+                    className="mb-2 block text-start text-[13px] font-semibold tracking-[0.02em] text-slate-800"
                   >
                     {t("signup.fullName")}
                   </label>
@@ -407,6 +415,7 @@ const Signup = () => {
                     id="fullName"
                     type="text"
                     autoComplete="name"
+                    dir={direction}
                     placeholder={t("signup.fullNamePlaceholder")}
                     {...register("fullName", {
                       required: t("signup.nameRequired"),
@@ -415,7 +424,7 @@ const Signup = () => {
                         message: t("signup.nameMinLength"),
                       },
                     })}
-                    className={`h-[50px] w-full rounded-md border bg-white px-4 text-[15px] text-slate-900 outline-none placeholder:text-slate-400 transition-all focus:ring-4 ${
+                    className={`h-[50px] w-full rounded-md border bg-white px-4 text-start text-[15px] text-slate-900 outline-none placeholder:text-slate-400 transition-all focus:ring-4 ${
                       errors.fullName
                         ? "border-red-400 focus:border-red-500 focus:ring-red-500/10"
                         : "border-slate-300 focus:border-blue-600 focus:ring-blue-600/10"
@@ -437,7 +446,7 @@ const Signup = () => {
                 <div className="mt-4">
                   <label
                     htmlFor="email"
-                    className="mb-2 block text-[13px] font-semibold tracking-[0.02em] text-slate-800"
+                    className="mb-2 block text-start text-[13px] font-semibold tracking-[0.02em] text-slate-800"
                   >
                     {t("signup.email")}
                   </label>
@@ -455,7 +464,7 @@ const Signup = () => {
                         message: t("signup.emailInvalid"),
                       },
                     })}
-                    className={`h-[50px] w-full rounded-md border bg-white px-4 text-[15px] text-slate-900 outline-none placeholder:text-slate-400 transition-all focus:ring-4 ${
+                    className={`h-[50px] w-full rounded-md border bg-white px-4 text-left text-[15px] text-slate-900 outline-none placeholder:text-slate-400 transition-all focus:ring-4 ${
                       errors.email
                         ? "border-red-400 focus:border-red-500 focus:ring-red-500/10"
                         : "border-slate-300 focus:border-blue-600 focus:ring-blue-600/10"
@@ -477,7 +486,7 @@ const Signup = () => {
                 <div className="mt-4">
                   <label
                     htmlFor="password"
-                    className="mb-2 block text-[13px] font-semibold tracking-[0.02em] text-slate-800"
+                    className="mb-2 block text-start text-[13px] font-semibold tracking-[0.02em] text-slate-800"
                   >
                     {t("signup.password")}
                   </label>
@@ -496,7 +505,7 @@ const Signup = () => {
                           message: t("signup.passwordMinLength"),
                         },
                       })}
-                      className={`h-[50px] w-full rounded-md border bg-white pl-4 pr-12 text-[15px] tracking-wider text-slate-900 outline-none placeholder:text-slate-400 transition-all focus:ring-4 ${
+                      className={`h-[50px] w-full rounded-md border bg-white pl-4 pr-12 text-left text-[15px] tracking-wider text-slate-900 outline-none placeholder:text-slate-400 transition-all focus:ring-4 ${
                         errors.password
                           ? "border-red-400 focus:border-red-500 focus:ring-red-500/10"
                           : "border-slate-300 focus:border-blue-600 focus:ring-blue-600/10"
@@ -532,7 +541,7 @@ const Signup = () => {
                 <div className="mt-4">
                   <label
                     htmlFor="confirmPassword"
-                    className="mb-2 block text-[13px] font-semibold tracking-[0.02em] text-slate-800"
+                    className="mb-2 block text-start text-[13px] font-semibold tracking-[0.02em] text-slate-800"
                   >
                     {t("signup.confirmPassword")}
                   </label>
@@ -549,7 +558,7 @@ const Signup = () => {
                         validate: (value) =>
                           value === password || t("signup.passwordMismatch"),
                       })}
-                      className={`h-[50px] w-full rounded-md border bg-white pl-4 pr-12 text-[15px] tracking-wider text-slate-900 outline-none placeholder:text-slate-400 transition-all focus:ring-4 ${
+                      className={`h-[50px] w-full rounded-md border bg-white pl-4 pr-12 text-left text-[15px] tracking-wider text-slate-900 outline-none placeholder:text-slate-400 transition-all focus:ring-4 ${
                         errors.confirmPassword
                           ? "border-red-400 focus:border-red-500 focus:ring-red-500/10"
                           : "border-slate-300 focus:border-blue-600 focus:ring-blue-600/10"
@@ -601,7 +610,11 @@ const Signup = () => {
                   ) : (
                     <>
                       <span>{t("signup.submit")}</span>
-                      <ArrowRight size={18} strokeWidth={2} />
+                      <ArrowRight
+                        size={18}
+                        strokeWidth={2}
+                        className={isRTL ? "rotate-180" : ""}
+                      />
                     </>
                   )}
                 </motion.button>
